@@ -11,10 +11,14 @@
 #include "algorithm/module/include/tracker.h"
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
+
 /**
- *  Tracker 
- * @note include a frontend thread, will interactive with Optimizer  and Map;
- */
+ * @brief Viewer
+ * @author snowden
+ * @date 2021-07-16
+ * @version 1.0
+ * @note include a viewer thread, will interactive with Tracker  and Map
+ */  
 class Viewer {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
@@ -28,7 +32,7 @@ class Viewer {
         std::weak_ptr<Frame> wp_current_frame_; 
         std::vector<std::weak_ptr<Mappoint3d>> vsp_mappoint_;
     protected:
-
+        
     private:
 
 }; //Viewer

@@ -14,9 +14,12 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 class Optimizer;
 
 /**
- *  Tracker 
- * @note include a frontend thread, will interactive with Optimizer  and Map;
- */
+ * @brief Tracker
+ * @author snowden
+ * @date 2021-07-16
+ * @version 1.0
+ * @note include a frontend thread, will interactive with Optimizer  and Map
+ */  
 class Tracker {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;

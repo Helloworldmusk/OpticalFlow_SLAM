@@ -8,10 +8,14 @@
 #include "algorithm/base_component/include/mappoint3d.h"
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
+
 /**
- *  Map 
- * @note it's frame pose  and mappoint position will be modified by mulit threads;
- */
+ * @brief Map
+ * @author snowden
+ * @date 2021-07-16
+ * @version 1.0
+ * @note it's frame pose  and mappoint position will be modified by mulit threads
+ */  
 class Map {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;

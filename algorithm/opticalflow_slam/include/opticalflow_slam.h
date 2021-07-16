@@ -1,5 +1,5 @@
-#ifndef OPTICALFLOW_SLAM_ALGORITHM_OPTICALFLOW_SLAM_H_
-#define OPTICALFLOW_SLAM_ALGORITHM_OPTICALFLOW_SLAM_H_
+#ifndef OPTICALFLOW_SLAM_ALGORITHM_OPTICALFLOW_SLAM_OPTICALFLOW_SLAM_H_
+#define OPTICALFLOW_SLAM_ALGORITHM_OPTICALFLOW_SLAM_OPTICALFLOW_SLAM_H_
 
 #include "algorithm/common_include.h"
 #include "algorithm/base_component/include/feature2d.h"
@@ -12,8 +12,10 @@
 #include "algorithm/module/include/optimizer.h"
 #include "algorithm/module/include/tracker.h"
 #include "algorithm/module/include/viewer.h"
+#include "algorithm/opticalflow_slam/include/macro_define.h"
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
+
 /**
  * 光流法里程计opticalflow_slam -> OP_SLAM
  */
@@ -21,11 +23,27 @@ class OP_SLAM {
     public:
         //typedefs
         //enum
+        enum class OP_SLAM_STATUS : std::int64_t{
+            READY,
+            INITING,
+            RUNING,
+            FINISHED,
+            SAVINGMAP,
+            RESET,
+            UNKNOW,
+            NUM
+        };
         //const
-        OP_SLAM(){};
-        ~OP_SLAM(){};
+        OP_SLAM(const std::string system_config_path, const std::string camera_config_path,
+                            const std::string dataset_path,  const std::string save_map_path);
+        ~OP_SLAM();
         //member function
-
+        bool init( );
+        bool run();
+        bool save_map();
+        //set/get
+        OP_SLAM_STATUS get_status() { return slam_status_ ;}
+        bool set_status(OP_SLAM_STATUS new_status);
         //data
         std::vector<std::pair<cv::Mat, cv::Mat>> image_left_right;
         std::shared_ptr<Map> sp_map_;
@@ -36,11 +54,13 @@ class OP_SLAM {
     private:
 
         //data
-        std::string dataset_path;
-        std::string system_config_path;
-        std::string camera_config_path;
-        std::string save_map_path;
+        std::string system_config_path_;
+        std::string camera_config_path_;
+        std::string dataset_path_;
+        std::string save_map_path_;
 
+        bool is_running { false };
+        OP_SLAM_STATUS slam_status_ = OP_SLAM_STATUS::READY;
         SystemConfig  slam_config_;
         CameraConfig camera_config_;
         double_t rpe { 0.0 };
@@ -50,4 +70,4 @@ class OP_SLAM {
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam
 
-#endif //OPTICALFLOW_SLAM_ALGORITHM_OPTICALFLOW_SLAM_H_
+#endif //OPTICALFLOW_SLAM_ALGORITHM_OPTICALFLOW_SLAM_OPTICALFLOW_SLAM_H_

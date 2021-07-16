@@ -5,16 +5,26 @@
 #include "algorithm/base_component/include/frame.h"
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
+
 /**
- *  KeyFrame 
- * @note it's pose will be modified by mulit thread;
- */
+ * @brief KeyFrame
+ * @author snowden
+ * @date 2021-07-16
+ * @version 1.0
+ * @note it's pose will be modified by mulit thread
+ */        
 class KeyFrame : public Frame {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-        KeyFrame();
+
+        KeyFrame() = delete;
+        KeyFrame(std::shared_ptr<Frame> sp_frame);
         ~KeyFrame();
         
+        bool get_is_actived()  { return is_actived_; }
+        void set_is_actived(bool value) { is_actived_ = value; }
+        
+        std::shared_ptr<Frame> sp_frame_ { nullptr };
         bool is_actived_ { true };
     protected:
 

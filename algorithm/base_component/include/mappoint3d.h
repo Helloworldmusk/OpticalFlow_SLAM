@@ -9,25 +9,32 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 class Feature2d;
 
 /**
- * 3d Mappoint points create by Triangulate ; 
- * @note It's position will be modified by mulit thread;
- */
-
+ * @brief 3d Mappoint points create by Triangulate
+ * @author snowden
+ * @date 2021-07-16
+ * @version 1.0
+ * @note it's pose will be modified by mulit thread
+ */  
 class Mappoint3d {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
+        static int64_t static_next_3d_id_;
+
         Mappoint3d();
+        Mappoint3d(const int64_t timestamp, const Vec3 position3d);
         ~Mappoint3d();
+        int64_t get_new_id() { static_next_3d_id_++; return static_next_3d_id_; }
 
         //data
          int64_t id_ { -1 };
+         //timestamp_ eq frame's  timestamp_, use to decide if  set outline;
          int64_t timestamp_ { -1 };
         Vec3 position3d_{ Vec3::Zero() };
         bool is_actived_ { true };
-        bool is_outline_ { true };
+        bool is_outline_ { false };
         int64_t observed_times_ { 0 };
-        std::vector<std::weak_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Feature2d>> vwp_observers_;
+        std::vector<std::weak_ptr<Feature2d>> vwp_observers_;
 
     protected:
     private:
