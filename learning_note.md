@@ -122,3 +122,65 @@ add_library(op_slam SHARED
 参考链接：https://blog.csdn.net/qq_31261509/article/details/88692736
 
 ​				   http://www.voidcn.com/article/p-urttzyjn-buo.html
+
+
+
+### GLOG 
+
+等级：
+
+INFO, WARNING,ERROR,FATAL
+
+可配置参数 Setting Flags：
+
+`logtostderr` *(*`bool`*, default=*`false`*)*
+
+`stderrthreshold` *(*`int`*, default=2, which is* `ERROR`*)*
+
+`minloglevel` *(*`int`*, default=0, which is* `INFO`*)*
+
+`v` *(*`int`*, default=0)*
+
+**note**: 这些参数直接配合 gflags 库使用会更好，可以运行命令中加入上述参数，进行设置；具体参考
+
+[链接](https://github.com/google/glog#severity-levels)
+
+使用案例：
+
+```cpp
+#include <glog/logging.h>
+
+int main(int argc, char* argv[]) {
+    // Initialize Google’s logging library.
+    google::InitGoogleLogging(argv[0]);
+
+    // ...
+    LOG(INFO) << "Found " << num_cookies << " cookies";
+    DLOG(INFO) << "Found cookies";
+	DLOG_IF(INFO, num_cookies > 10) << "Got lots of cookies";
+    CHECK(fp->Write(x) == 4) << "Write failed!";
+    CHECK_NE(1, 2) << ": The world must be ending!";
+    CHECK_EQ(string("abc")[1], ’b’);
+    CHECK_EQ(some_ptr, static_cast<SomeType*>(NULL));
+    CHECK_NOTNULL(some_ptr);
+}
+```
+
+参考链接： https://github.com/google/glog#severity-levels
+
+​					https://www.jianshu.com/p/2179938a818d
+
+​					http://www.yeolar.com/note/2014/12/14/gflags/
+
+
+
+### std::thread
+
+
+
+参考链接： https://www.cnblogs.com/adorkable/p/12722209.html
+
+
+
+
+

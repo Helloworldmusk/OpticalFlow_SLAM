@@ -19,10 +19,11 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 class Map {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-        static constexpr int64_t actived_frame_num_{ 6 };
 
-        Map();
-        ~Map();
+        static constexpr int64_t actived_frame_num_ { 6 };
+
+        Map() { };
+        ~Map() { };
 
         std::vector<std::shared_ptr<Frame>> vsp_frame_;
         std::vector<std::shared_ptr<KeyFrame>> vsp_keyframe_;
@@ -38,6 +39,5 @@ class Map {
 }; //Map
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam
-
 
 #endif //OPTICALFLOW_SLAM_ALGORITHM_MODULE_MAP_H_

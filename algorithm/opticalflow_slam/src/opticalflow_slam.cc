@@ -26,6 +26,9 @@ OP_SLAM::OP_SLAM(const std::string system_config_path, const std::string camera_
         save_map_path_(save_map_path)
 {
         SHOW_FUNCTION_INFO
+        load_system_config();
+        load_camera_config();
+        load_images();
 }
 
 
@@ -54,6 +57,18 @@ bool OP_SLAM::init()
 
         //TODO(snowden):need to get slam status first;
         is_running = true;
+        if( OP_SLAM_STATUS::READY != get_status() && OP_SLAM_STATUS::RESET != get_status() ) 
+        {
+                LOG(ERROR) << "op_slam_status" <<  static_cast<int64_t>(get_status()) <<  " can't change to  init" << std::endl; 
+                return false;
+        }
+        //init Map
+        sp_map_ = std::shared_ptr<Map>(new Map());
+        //init Tracker
+        sp_tracker_ = std::shared_ptr<Tracker>(new Tracker(sp_map_, sp_slam_config_, sp_camera_config_));
+        //init Optimizer
+        sp_optimizer_ = std::shared_ptr<Optimizer>(new Optimizer(sp_map_, sp_slam_config_, sp_camera_config_));
+
 }
 
 
@@ -150,7 +165,7 @@ bool OP_SLAM::set_status(OP_SLAM_STATUS new_status)
                 default:
                 {
                         //TODO(snowden) : should use log instead of cout;
-                        std::cout << "give  OP_SLAM_STATUS is not knowden " << std::endl;
+                        std::cout << "give  OP_SLAM_STATUS is not know " << std::endl;
                         return false;
                 }
         } 
@@ -161,5 +176,40 @@ bool OP_SLAM::set_status(OP_SLAM_STATUS new_status)
         }
         return result;
 }
+
+/**
+ * @brief 
+ * @author snowden
+ * @date 2021-07-18
+ * @version 1.0
+ */
+bool OP_SLAM::load_system_config()
+{
+        SHOW_FUNCTION_INFO
+}
+
+/**
+ * @brief 
+ * @author snowden
+ * @date 2021-07-18
+ * @version 1.0
+ */
+bool OP_SLAM::load_camera_config()
+{
+        SHOW_FUNCTION_INFO
+}
+
+/**
+ * @brief 
+ * @author snowden
+ * @date 2021-07-18
+ * @version 1.0
+ */
+bool OP_SLAM::load_images()
+{
+        SHOW_FUNCTION_INFO
+}
+
+
 
 } //OpticalFlow_SLAM_algorithm_opticalflow_slam

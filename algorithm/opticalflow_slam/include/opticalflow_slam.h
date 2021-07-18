@@ -53,6 +53,10 @@ class OP_SLAM {
 
     private:
 
+        bool load_system_config();
+        bool load_camera_config();
+        bool load_images();
+
         //data
         std::string system_config_path_;
         std::string camera_config_path_;
@@ -61,8 +65,8 @@ class OP_SLAM {
 
         bool is_running { false };
         OP_SLAM_STATUS slam_status_ = OP_SLAM_STATUS::READY;
-        SystemConfig  slam_config_;
-        CameraConfig camera_config_;
+        std::shared_ptr<SystemConfig>  sp_slam_config_;
+        std::shared_ptr<CameraConfig> sp_camera_config_;
         double_t rpe { 0.0 };
         double_t ate { 0.0 };
 

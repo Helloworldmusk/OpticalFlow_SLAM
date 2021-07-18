@@ -19,7 +19,7 @@ SystemConfig* SystemConfig::getSystemConfig(const int64_t &i_pyrimid_levels_num,
         if (nullptr == system_config)
         {
                 //TODO(snowden): need add synchronized operate for mulit thread; DCL， synchronized (SystemConfig.class)  reference: https://www.runoob.com/design-pattern/singleton-pattern.html
-                if(nullptr == system_config)
+                if (nullptr == system_config)
                 {
                         system_config = new SystemConfig(i_pyrimid_levels_num, d_pyrimid_scale, i_fps);
                 }

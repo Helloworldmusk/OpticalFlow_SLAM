@@ -13,6 +13,8 @@
 #include <Eigen/Geometry>
 #include <sophus/se3.hpp>
 #include <sophus/so3.hpp>
+#include<glog/logging.h>
+#include <gflags/gflags.h>
 //project lib
 
 

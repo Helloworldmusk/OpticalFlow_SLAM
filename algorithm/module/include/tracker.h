@@ -6,6 +6,8 @@
 #include "algorithm/base_component/include/frame.h"
 #include "algorithm/base_component/include/keyframe.h"
 #include "algorithm/base_component/include/mappoint3d.h"
+#include "algorithm/base_component/include/system_config.h"
+#include "algorithm/base_component/include/camera_config.h"
 #include "algorithm/module/include/map.h"
 #include "algorithm/module/include/optimizer.h"
 
@@ -33,13 +35,16 @@ class Tracker {
                 TRACKER_STATUS_UNKONW,
                 TRACKER_STATUS_NUM
         };
-        Tracker();
-        ~Tracker();
+        Tracker( std::weak_ptr<Map> map, const std::shared_ptr<SystemConfig>  sp_slam_config, 
+                          const std::shared_ptr<CameraConfig> sp_camera_config);
+        ~Tracker() {};
     
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Optimizer> wp_optimizer_;
         std::weak_ptr<Frame> wp_current_frame_; 
         std::weak_ptr<Frame> wp_last_frame_;
+        std::shared_ptr<SystemConfig>  sp_slam_config_;
+        std::shared_ptr<CameraConfig> sp_camera_config_;
         //last frame pose -> current_frame;
         SE3 relative_motion_;
         int64_t tracked_inliers_num_ { -1 };

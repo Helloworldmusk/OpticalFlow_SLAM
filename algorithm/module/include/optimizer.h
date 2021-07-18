@@ -6,6 +6,8 @@
 #include "algorithm/base_component/include/frame.h"
 #include "algorithm/base_component/include/keyframe.h"
 #include "algorithm/base_component/include/mappoint3d.h"
+#include "algorithm/base_component/include/system_config.h"
+#include "algorithm/base_component/include/camera_config.h"
 #include "algorithm/module/include/map.h"
 #include "algorithm/module/include/tracker.h"
 
@@ -32,11 +34,14 @@ class Optimizer {
                 OPTIMIZER_STATUS_NUM
         };
 
-        Optimizer();
-        ~Optimizer();
+        Optimizer( std::weak_ptr<Map> map, const std::shared_ptr<SystemConfig>  sp_slam_config, 
+                               const std::shared_ptr<CameraConfig> sp_camera_config);
+        ~Optimizer()  { };
     
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Tracker> wp_tracker_;
+        std::shared_ptr<SystemConfig>  sp_slam_config_;
+        std::shared_ptr<CameraConfig> sp_camera_config_;
 
     protected:
 

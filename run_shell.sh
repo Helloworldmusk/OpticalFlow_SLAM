@@ -13,8 +13,9 @@ make -j8
 
 echo " run_shell: ready run run_vo "
 cd ../bin
-./run_vo
 
+./run_vo 
+# GLOG_logtostderr=1 ./run_vo
 cd ..
 
 

@@ -37,7 +37,7 @@ struct CameraConfig  {
         static CameraConfig* camera_config ;
 
         CameraConfig(double_t d_fx, double_t d_fy, double_t d_cx, double_t d_cy,
-                                        double_t d_r1, double_t d_r2, double_t d_r3, double_t d_p1, double_t d_p2);
+                                       double_t d_r1, double_t d_r2, double_t d_r3, double_t d_p1, double_t d_p2);
 
 
 }; //CameraConfig

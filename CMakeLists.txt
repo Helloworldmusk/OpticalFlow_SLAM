@@ -15,9 +15,7 @@ message(" current  source dir : ${PROJECT_SOURCE_DIR}" )
 # Algorithm
 include_directories(${PROJECT_SOURCE_DIR}/algorithm)
 
-# OpenCV
-find_package(OpenCV 3.1 REQUIRED)
-include_directories(${OpenCV_INCLUDE_DIRS})
+
 
 add_subdirectory(algorithm)
 add_subdirectory(app)

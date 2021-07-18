@@ -23,8 +23,8 @@ class Viewer {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-        Viewer();
-        ~Viewer();
+        Viewer(std::weak_ptr<Map> wp_map, std::weak_ptr<Tracker> wp_tracker, std::weak_ptr<Optimizer> wp_optimizer);
+        ~Viewer() { };
         bool is_running_viewer_ { true };
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Optimizer> wp_optimizer_;

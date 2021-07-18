@@ -2,11 +2,21 @@
 
 #include <memory> //for smart pointer; 
 
+#include<glog/logging.h>
+#include <gflags/gflags.h>
+
 #include "algorithm/opticalflow_slam/include/opticalflow_slam.h"
 
+// DEFINE_int32(logtostderr, 1, "to stderr");
+// DEFINE_int32(minloglevel, 0, "start from info");
+// DEFINE_int32(stderrthreshold, 0, "start form info");
 namespace  SLAM = OpticalFlow_SLAM_algorithm_opticalflow_slam;
-int main()
+int main(int argc, char* argv[])
 {
+        FLAGS_logtostderr=1; 
+        FLAGS_minloglevel=0 ;
+        google::InitGoogleLogging(argv[0]);
+        DLOG(INFO) << " this is a dlog test " << std::endl;
         std::string system_config_path = "";
         std::string camera_config_path = "";
         std::string data_set_path = "";
@@ -16,5 +26,6 @@ int main()
         up_slam->init();
         up_slam->run();
         up_slam->save_map();
+
 }
 
