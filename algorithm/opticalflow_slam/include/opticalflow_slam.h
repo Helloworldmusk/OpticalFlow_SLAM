@@ -49,6 +49,7 @@ class OP_SLAM {
         std::shared_ptr<Map> sp_map_;
         std::shared_ptr<Tracker> sp_tracker_;
         std::shared_ptr<Optimizer> sp_optimizer_;
+        std::shared_ptr<Viewer> sp_viewer_;
     protected:
 
     private:
@@ -63,7 +64,7 @@ class OP_SLAM {
         std::string dataset_path_;
         std::string save_map_path_;
 
-        bool is_running { false };
+        std::atomic<bool> is_running_;
         OP_SLAM_STATUS slam_status_ = OP_SLAM_STATUS::READY;
         std::shared_ptr<SystemConfig>  sp_slam_config_;
         std::shared_ptr<CameraConfig> sp_camera_config_;

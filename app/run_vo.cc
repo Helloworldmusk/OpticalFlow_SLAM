@@ -12,8 +12,10 @@
 // DEFINE_int32(stderrthreshold, 0, "start form info");
 namespace  SLAM = OpticalFlow_SLAM_algorithm_opticalflow_slam;
 int main(int argc, char* argv[])
-{
-        FLAGS_logtostderr=1; 
+{       
+        //set log to screem;
+        FLAGS_logtostderr=1;
+        //show log from INFO 
         FLAGS_minloglevel=0 ;
         google::InitGoogleLogging(argv[0]);
         DLOG(INFO) << " this is a dlog test " << std::endl;

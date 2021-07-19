@@ -2,6 +2,11 @@
 #define OPTICALFLOW_SLAM_ALGORITHM_MODULE_OPTIMIZER_H_
 
 #include "algorithm/common_include.h"
+
+#include <thread>
+#include <chrono>
+#include <atomic>
+
 #include "algorithm/base_component/include/feature2d.h"
 #include "algorithm/base_component/include/frame.h"
 #include "algorithm/base_component/include/keyframe.h"
@@ -37,6 +42,7 @@ class Optimizer {
         Optimizer( std::weak_ptr<Map> map, const std::shared_ptr<SystemConfig>  sp_slam_config, 
                                const std::shared_ptr<CameraConfig> sp_camera_config);
         ~Optimizer()  { };
+        void stop();
     
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Tracker> wp_tracker_;
@@ -46,6 +52,11 @@ class Optimizer {
     protected:
 
     private:
+
+        void back_end_loop();
+
+        std::thread back_end_thread_;
+        std::atomic<bool>  is_running_;
 
 }; //Optimizer
 

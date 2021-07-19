@@ -43,3 +43,37 @@
 ![image-20210716122844869](typora_image/image-20210716122844869.png)
 
 原因分析： 可能是库没链接上；
+
+
+
+编译错误：
+
+报错信息：
+
+/usr/local/lib/libgflags.a(gflags.cc.o): relocation R_X86_64_PC32 against symbol `stderr@@GLIBC_2.2.5' can not be used when making a shared object; recompile with -fPIC
+
+最后的链结失败: 错误的值
+
+![image-20210719154247375](typora_image/image-20210719154247375.png)
+
+原因分析：之前编译gflags的时候，没有给定编译说明编译成静态库还是动态库，所以在工程中按照动态库进行链接的时候，出现了这个错误（第一次安装完成后，并没有出现这个错误，关键后再开机，就出现了这个问题）
+
+解决办法：应该在编译的时候给定编译结果为动态库还是静态库，cmake .. -DBUILD_SHARED_LIBS=ON
+
+参考链接： https://stackoverflow.com/questions/45691778/cdt-using-lib-a-relocation-r-x86-64-32s-against-symbol-can-not-be-used
+
+​					https://github.com/gflags/gflags/blob/master/INSTALL.md
+
+
+
+
+
+多线程运行错误：
+
+Thread 1 "run_vo" received signal SIGABRT, Aborted.
+__GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:51
+51	../sysdeps/unix/sysv/linux/raise.c: 没有那个文件或目录.
+
+![image-20210719165105978](typora_image/image-20210719165105978.png)
+
+​				

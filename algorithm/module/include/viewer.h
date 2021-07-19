@@ -25,15 +25,23 @@ class Viewer {
 
         Viewer(std::weak_ptr<Map> wp_map, std::weak_ptr<Tracker> wp_tracker, std::weak_ptr<Optimizer> wp_optimizer);
         ~Viewer() { };
-        bool is_running_viewer_ { true };
+        void stop();
+
+
+
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Optimizer> wp_optimizer_;
         std::weak_ptr<Tracker> wp_tracker_;
         std::weak_ptr<Frame> wp_current_frame_; 
         std::vector<std::weak_ptr<Mappoint3d>> vsp_mappoint_;
+        std::thread viewer_thread_;
     protected:
         
     private:
+        void viewer_loop();
+        
+        std::atomic<bool> is_running_;
+        
 
 }; //Viewer
 

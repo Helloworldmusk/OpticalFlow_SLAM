@@ -2,6 +2,11 @@
 #define OPTICALFLOW_SLAM_ALGORITHM_MODULE_TRACKER_H_
 
 #include "algorithm/common_include.h"
+
+#include <thread>
+#include <chrono>
+#include <atomic>
+
 #include "algorithm/base_component/include/feature2d.h"
 #include "algorithm/base_component/include/frame.h"
 #include "algorithm/base_component/include/keyframe.h"
@@ -10,6 +15,7 @@
 #include "algorithm/base_component/include/camera_config.h"
 #include "algorithm/module/include/map.h"
 #include "algorithm/module/include/optimizer.h"
+#include "algorithm/opticalflow_slam/include/macro_define.h"
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 
@@ -38,6 +44,8 @@ class Tracker {
         Tracker( std::weak_ptr<Map> map, const std::shared_ptr<SystemConfig>  sp_slam_config, 
                           const std::shared_ptr<CameraConfig> sp_camera_config);
         ~Tracker() {};
+        void stop();
+       
     
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Optimizer> wp_optimizer_;
@@ -58,12 +66,17 @@ class Tracker {
         int64_t reset_inliers_num_threshold_ { 10000000 };
         //if inliers num < need_insert_keyframe_inliers_num_threshold_, insert a keyframe;
         int64_t need_insert_keyframe_inliers_num_threshold_ { 10000000 };
-
         TrackerStatus enum_tracker_status_ { TrackerStatus::TRACKER_STATUS_UNKONW };
+        std::thread front_end_thread_;
+
 
     protected:
 
     private:
+        void front_end_loop();
+
+        std::atomic<bool> is_running_;
+
 
 }; //Tracker
 

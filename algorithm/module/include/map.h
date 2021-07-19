@@ -2,6 +2,9 @@
 #define OPTICALFLOW_SLAM_ALGORITHM_MODULE_MAP_H_
 
 #include "algorithm/common_include.h"
+
+#include <condition_variable>
+
 #include "algorithm/base_component/include/feature2d.h"
 #include "algorithm/base_component/include/frame.h"
 #include "algorithm/base_component/include/keyframe.h"
@@ -31,7 +34,10 @@ class Map {
         std::vector<std::shared_ptr<KeyFrame>> vsp_actived_keyframe_;
         std::vector<std::shared_ptr<Mappoint3d>> vsp_actived_mappoint_; 
         std::weak_ptr<Frame> wp_current_frame_;
-        std::weak_ptr<Frame> wp_last_frame_;       
+        std::weak_ptr<Frame> wp_last_frame_;
+        std::mutex data_mutex_;
+        std::unique_lock<std::mutex> data_lock_{data_mutex_};       
+        std::condition_variable is_front_end_updated;
     protected:
 
     private:

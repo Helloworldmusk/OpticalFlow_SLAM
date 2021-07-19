@@ -176,11 +176,430 @@ int main(int argc, char* argv[]) {
 
 ### std::thread
 
+**头文件** 
 
+#include <thread>
+
+**线程的创建**
+
+```cpp
+int main()
+{
+    int n = 0;
+    std::thread t1; // t1 is not a thread
+    std::thread t2(f1, n + 1); // pass by value
+    std::thread t3(f2, std::ref(n)); // pass by reference
+    std::thread t4(std::move(t3)); // t4 is now running f2(). t3 is no longer a thread
+    t2.join();
+    t4.join();
+    std::cout << "Final value of n is " << n << '\n';
+}
+```
+
+**线程相关其他函数**
+
+```cpp
+//get_id
+  std::thread t2(foo);
+  std::thread::id t2_id = t2.get_id();
+
+//joinable
+//检查线程是否可被 join。检查当前的线程对象是否表示了一个活动的执行线程，由默认构造函数创建的线程是不能被 join 的。
+void foo()
+{
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+int main()
+{
+  std::thread t;
+  std::cout << "before starting, joinable: " << t.joinable() << '\n';
+
+  t = std::thread(foo);
+  std::cout << "after starting, joinable: " << t.joinable() << '\n';
+
+  t.join();
+}
+
+//detach
+/*
+Detach 线程。 将当前线程对象所代表的执行实例与该线程对象分离，使得线程的执行可以单独进行。一旦线程执行完毕，它所分配的资源将会被释放。
+调用 detach 函数之后：
+1. *this 不再代表任何的线程执行实例。
+2. joinable() == false
+3. get_id() == std::thread::id()
+*/
+std::thread t(independentThread);
+t.detach();
+
+//swap: 
+//Swap 线程，交换两个线程对象所代表的底层句柄(underlying handles)。
+  std::thread t1(foo);
+  std::thread t2(bar);
+  std::swap(t1, t2);
+  t1.swap(t2);
+
+
+//pthread_setschedparam 
+//设置线程的优先级；
+
+  std::thread t1(f, 1), t2(f, 2);
+  sched_param sch;
+  int policy; 
+  pthread_getschedparam(t1.native_handle(), &policy, &sch);
+  sch.sched_priority = 20;
+  if(pthread_setschedparam(t1.native_handle(), SCHED_FIFO, &sch)) {
+      std::cout << "Failed to setschedparam: " << std::strerror(errno) << '\n';
+  }
+
+// hardware_concurrency 
+// 检测硬件并发特性，返回当前平台的线程实现所支持的线程并发数目，但返回值仅仅只作为系统提示(hint)。
+#include <iostream>
+#include <thread>
+ 
+int main() {
+    unsigned int n = std::thread::hardware_concurrency();
+    std::cout << n << " concurrent threads are supported.\n";
+}
+
+//多线程加锁
+std::mutex g_display_mutex;
+void foo()
+{
+  std::thread::id this_id = std::this_thread::get_id();
+  g_display_mutex.lock();
+  std::cout << "thread " << this_id << " sleeping...\n";
+  g_display_mutex.unlock();
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+}
+int main()
+{
+  std::thread t1(foo);
+  std::thread t2(foo);
+  t1.join();
+  t2.join();
+}
+
+//yield 
+//当前线程放弃执行，操作系统调度另一个线程继续执行；
+void little_sleep(std::chrono::microseconds us)
+{
+  auto start = std::chrono::high_resolution_clock::now();
+  auto end = start + us;
+  do {
+      std::this_thread::yield();
+  } while (std::chrono::high_resolution_clock::now() < end);
+}
+
+//sleep_until
+// 线程休眠至某个指定的时刻(time point)，该线程才被重新唤醒。
+template< class Clock, class Duration >
+void sleep_until( const std::chrono::time_point<Clock,Duration>& sleep_time );
+
+//sleep_for
+//线程休眠某个指定的时间片(time span)，该线程才被重新唤醒，不过由于线程调度等原因，实际休眠时间可能比 sleep_duration 所表示的时间片更长。
+int main()
+{
+  std::cout << "Hello waiter" << std::endl;
+  std::chrono::milliseconds dura( 2000 );
+  std::this_thread::sleep_for( dura );
+  std::cout << "Waited 2000 ms\n";
+}
+
+```
+
+**note**
+
+使用线程库之前，在CMakelists.txt中，首先要进行链接： target_link_libraries(project_name  pthread)
 
 参考链接： https://www.cnblogs.com/adorkable/p/12722209.html
 
+​					https://www.runoob.com/w3cnote/cpp-std-thread.html
 
+
+
+### std::mutex
+
+常用函数：
+
+| [lock](https://en.cppreference.com/w/cpp/thread/mutex/lock)  | locks the mutex, blocks if the mutex is not available (public member function) |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [try_lock](https://en.cppreference.com/w/cpp/thread/mutex/try_lock) | tries to lock the mutex, returns if the mutex is not available (public member function) |
+| [unlock](https://en.cppreference.com/w/cpp/thread/mutex/unlock) | unlocks the mutex (public member function)                   |
+
+ 但是不经常使用std::mutex
+
+>`std::mutex` is usually not accessed directly: [std::unique_lock](https://en.cppreference.com/w/cpp/thread/unique_lock), [std::lock_guard](https://en.cppreference.com/w/cpp/thread/lock_guard), or [std::scoped_lock](https://en.cppreference.com/w/cpp/thread/scoped_lock) (since C++17) manage locking in a more exception-safe manner.
+
+```示例代码
+#include <iostream>
+#include <map>
+#include <string>
+#include <chrono>
+#include <thread>
+#include <mutex>
+ 
+std::map<std::string, std::string> g_pages;
+std::mutex g_pages_mutex;
+ 
+void save_page(const std::string &url)
+{
+    // simulate a long page fetch
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::string result = "fake content";
+ 
+    std::lock_guard<std::mutex> guard(g_pages_mutex);
+    g_pages[url] = result;
+}
+ 
+int main() 
+{
+    std::thread t1(save_page, "http://foo");
+    std::thread t2(save_page, "http://bar");
+    t1.join();
+    t2.join();
+ 
+    // safe to access g_pages without lock now, as the threads are joined
+    for (const auto &pair : g_pages) {
+        std::cout << pair.first << " => " << pair.second << '\n';
+    }
+}
+```
+
+
+
+### std::unique_lock
+
+**为什么不用std::mutex , 而要用 std::unique_lock?**
+
+> The class unique_lock is a general-purpose mutex ownership wrapper allowing deferred locking, time-constrained attempts at locking, recursive locking, transfer of lock ownership, and use with condition variables.
+
+
+
+**常用函数**
+
+| [lock](https://en.cppreference.com/w/cpp/thread/unique_lock/lock) | locks (i.e., takes ownership of) the associated mutex (public member function) |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [try_lock](https://en.cppreference.com/w/cpp/thread/unique_lock/try_lock) | tries to lock (i.e., takes ownership of) the associated mutex without blocking (public member function) |
+| [try_lock_for](https://en.cppreference.com/w/cpp/thread/unique_lock/try_lock_for) | attempts to lock (i.e., takes ownership of) the associated [*TimedLockable*](https://en.cppreference.com/w/cpp/named_req/TimedLockable) mutex, returns if the mutex has been unavailable for the specified time duration (public member function) |
+| [try_lock_until](https://en.cppreference.com/w/cpp/thread/unique_lock/try_lock_until) | tries to lock (i.e., takes ownership of) the associated [*TimedLockable*](https://en.cppreference.com/w/cpp/named_req/TimedLockable) mutex, returns if the mutex has been unavailable until specified time point has been reached (public member function) |
+| [unlock](https://en.cppreference.com/w/cpp/thread/unique_lock/unlock) | unlocks (i.e., releases ownership of) the associated mutex (public member function) |
+| [swap](https://en.cppreference.com/w/cpp/thread/unique_lock/swap) | swaps state with another **std::unique_lock** (public member function) |
+
+| [mutex](https://en.cppreference.com/w/cpp/thread/unique_lock/mutex) | returns a pointer to the associated mutex (public member function) |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [owns_lock](https://en.cppreference.com/w/cpp/thread/unique_lock/owns_lock) | tests whether the lock owns (i.e., has locked) its associated mutex (public member function)   for example : lck.owns_lock() |
+
+```cpp
+#include <mutex>
+#include <thread>
+#include <chrono>
+ 
+struct Box {
+    explicit Box(int num) : num_things{num} {}
+ 
+    int num_things;
+    std::mutex m;
+};
+ 
+void transfer(Box &from, Box &to, int num)
+{
+    // don't actually take the locks yet
+    std::unique_lock<std::mutex> lock1(from.m, std::defer_lock);
+    std::unique_lock<std::mutex> lock2(to.m, std::defer_lock);
+ 
+    // lock both unique_locks without deadlock
+    std::lock(lock1, lock2);
+ 
+    from.num_things -= num;
+    to.num_things += num;
+ 
+    // 'from.m' and 'to.m' mutexes unlocked in 'unique_lock' dtors
+}
+ 
+int main()
+{
+    Box acc1(100);
+    Box acc2(50);
+ 
+    std::thread t1(transfer, std::ref(acc1), std::ref(acc2), 10);
+    std::thread t2(transfer, std::ref(acc2), std::ref(acc1), 5);
+ 
+    t1.join();
+    t2.join();
+}
+```
+
+
+
+### std::atomic
+
+**常用函数**
+
+| [operator=](https://en.cppreference.com/w/cpp/atomic/atomic/operator%3D) | stores a value into an atomic object (public member function) |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [is_lock_free](https://en.cppreference.com/w/cpp/atomic/atomic/is_lock_free) | checks if the atomic object is lock-free (public member function) |
+| [store](https://en.cppreference.com/w/cpp/atomic/atomic/store) | atomically replaces the value of the atomic object with a non-atomic argument (public member function) |
+| [load](https://en.cppreference.com/w/cpp/atomic/atomic/load) | atomically obtains the value of the atomic object (public member function) |
+
+| [wait](https://en.cppreference.com/w/cpp/atomic/atomic/wait)(C++20) | blocks the thread until notified and the atomic value changes (public member function) |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [notify_one](https://en.cppreference.com/w/cpp/atomic/atomic/notify_one)(C++20) | notifies at least one thread waiting on the atomic object (public member function) |
+| [notify_all](https://en.cppreference.com/w/cpp/atomic/atomic/notify_all)(C++20) | notifies all threads blocked waiting on the atomic object (public member function) |
+
+| [fetch_add](https://en.cppreference.com/w/cpp/atomic/atomic/fetch_add) | atomically adds the argument to the value stored in the atomic object and obtains the value held previously (public member function) |
+| ------------------------------------------------------------ | ------------------------------------------------------------ |
+| [fetch_sub](https://en.cppreference.com/w/cpp/atomic/atomic/fetch_sub) | atomically subtracts the argument from the value stored in the atomic object and obtains the value held previously (public member function) |
+| [fetch_and](https://en.cppreference.com/w/cpp/atomic/atomic/fetch_and) | atomically performs bitwise AND between the argument and the value of the atomic object and obtains the value held previously (public member function) |
+| [fetch_or](https://en.cppreference.com/w/cpp/atomic/atomic/fetch_or) | atomically performs bitwise OR between the argument and the value of the atomic object and obtains the value held previously (public member function) |
+| [fetch_xor](https://en.cppreference.com/w/cpp/atomic/atomic/fetch_xor) | atomically performs bitwise XOR between the argument and the value of the atomic object and obtains the value held previously (public member function) |
+
+```cpp
+// constructing atomics
+#include <iostream>       // std::cout
+#include <atomic>         // std::atomic, std::atomic_flag, ATOMIC_FLAG_INIT
+#include <thread>         // std::thread, std::this_thread::yield
+#include <vector>         // std::vector
+
+std::atomic<bool> ready (false);
+std::atomic_flag winner = ATOMIC_FLAG_INIT;
+
+void count1m (int id) {
+  while (!ready) { std::this_thread::yield(); }      // wait for the ready signal
+  for (volatile int i=0; i<1000000; ++i) {}          // go!, count to 1 million
+  if (!winner.test_and_set()) { std::cout << "thread #" << id << " won!\n"; }
+};
+
+int main ()
+{
+  std::vector<std::thread> threads;
+  std::cout << "spawning 10 threads that count to 1 million...\n";
+  for (int i=1; i<=10; ++i) threads.push_back(std::thread(count1m,i));
+  ready = true;
+  for (auto& th : threads) th.join();
+
+  return 0;
+}
+```
+
+
+
+### std::condition_variable
+
+作用：线程间通信的机制，通过一个线程去唤醒另一个线程或者另外其他所有线程；
+
+主要功能函数
+
+- [**wait**](https://www.cplusplus.com/reference/condition_variable/condition_variable/wait/)
+
+  Wait until notified (public member function )
+
+- [**wait_for**](https://www.cplusplus.com/reference/condition_variable/condition_variable/wait_for/)
+
+  Wait for timeout or until notified (public member function )
+
+- [**wait_until**](https://www.cplusplus.com/reference/condition_variable/condition_variable/wait_until/)
+
+  Wait until notified or time point (public member function )
+
+- [**notify_one**](https://www.cplusplus.com/reference/condition_variable/condition_variable/notify_one/)
+
+  Notify one (public member function )
+
+- [**notify_all**](https://www.cplusplus.com/reference/condition_variable/condition_variable/notify_all/)
+
+  Notify all (public member function )
+
+运行示例
+
+```cpp
+// condition_variable example
+#include <iostream>           // std::cout
+#include <thread>             // std::thread
+#include <mutex>              // std::mutex, std::unique_lock
+#include <condition_variable> // std::condition_variable
+
+std::mutex mtx;
+std::condition_variable cv;
+bool ready = false;
+
+void print_id (int id) {
+  std::unique_lock<std::mutex> lck(mtx);
+  while (!ready) cv.wait(lck);
+  // ...
+  std::cout << "thread " << id << '\n';
+}
+
+void go() {
+  std::unique_lock<std::mutex> lck(mtx);
+  ready = true;
+  cv.notify_all();
+}
+
+int main ()
+{
+  std::thread threads[10];
+  // spawn 10 threads:
+  for (int i=0; i<10; ++i)
+    threads[i] = std::thread(print_id,i);
+
+  std::cout << "10 threads ready to race...\n";
+  go();                       // go!
+
+  for (auto& th : threads) th.join();
+
+  return 0;
+}
+```
+
+参考链接：https://www.cplusplus.com/reference/condition_variable/condition_variable/
+
+
+
+**有关atomic 、 condition_variable 、unique_lock 和 mutex 的通俗解释**
+
+个人理解： mutex 提供了底层的锁机制，而unique_lock 是对mutex的一种包装，在mutex的基础上提供了其他一些机制，比如延时锁，atomic是为了让变量在操作过程中不被其他线程同时操作，执行原子操作，condition_variable 执行的是多个线程之间的通信；
+
+总的来说： atomic 、 mutex 和 unique_lock 主要实现的是线程之间的互斥机制；
+
+​					atomic 主要是针对一个变量上的操作，避免频繁使用加锁解锁；
+
+​					unique_lock 和 mutex 主要用于 多语句之间的加锁解锁，多使用unique_lock，其接口更加丰富，而且可以直接作为条件变量的参数；
+
+​                    condition_variable 主要为了实现线程之间的同步机制；
+
+其他博主理解：https://zhuanlan.zhihu.com/p/136861784
+
+
+
+### std::bind
+
+目的： 给原有函数进行一次包装，对相应的参数进行指定或者改变，只是改变外部接口，并不改变内部逻辑，可以设置一些默认参数，或者通过多个参数来计算出一个新的值，交给底层去处理；主要是为了应对接口的变化；
+
+> The function template `bind` generates a forwarding call wrapper for `f`. Calling this wrapper is equivalent to invoking `f` with some of its arguments bound to `args`.
+
+参考链接：https://en.cppreference.com/w/cpp/utility/functional/bind
+
+​				   https://blog.csdn.net/qq_37653144/article/details/79285221
+
+​					
+
+
+
+
+
+### 智能指针VS 常规指针
+
+
+
+### 类型转换对比
+
+
+
+### 关键词explict
+
+
+
+### C++的异常机制
 
 
 

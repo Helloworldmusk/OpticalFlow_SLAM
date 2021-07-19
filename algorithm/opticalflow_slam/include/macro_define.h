@@ -26,7 +26,7 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
  #define DEBUG_WITH_FUNCTION_INFO   
 #ifdef DEBUG_WITH_FUNCTION_INFO
 #define SHOW_FUNCTION_INFO \
-        { std::cout <<BOLDYELLOW << " INFO :  " << RESET_COLOR <<  __FUNCTION__  << " : " <<  __LINE__  << "  line : " << __FILE__  << std::endl; }
+        { std::cout <<BOLDCYAN << " INFO :  " << RESET_COLOR << "function: " <<  __FUNCTION__  << "  line: " <<  __LINE__  << "  file: " << __FILE__  << std::endl; }
 #else
 #define SHOW_FUNCTION_INFO
 #endif

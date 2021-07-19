@@ -56,7 +56,7 @@ bool OP_SLAM::init()
         SHOW_FUNCTION_INFO
 
         //TODO(snowden):need to get slam status first;
-        is_running = true;
+        is_running_.store(true);
         if( OP_SLAM_STATUS::READY != get_status() && OP_SLAM_STATUS::RESET != get_status() ) 
         {
                 LOG(ERROR) << "op_slam_status" <<  static_cast<int64_t>(get_status()) <<  " can't change to  init" << std::endl; 
@@ -68,6 +68,9 @@ bool OP_SLAM::init()
         sp_tracker_ = std::shared_ptr<Tracker>(new Tracker(sp_map_, sp_slam_config_, sp_camera_config_));
         //init Optimizer
         sp_optimizer_ = std::shared_ptr<Optimizer>(new Optimizer(sp_map_, sp_slam_config_, sp_camera_config_));
+
+        sp_viewer_  = std::shared_ptr<Viewer>(new Viewer(sp_map_, sp_tracker_, sp_optimizer_));
+        
 
 }
 
@@ -81,11 +84,16 @@ bool OP_SLAM::init()
 bool OP_SLAM::run()
 {
         SHOW_FUNCTION_INFO
-        while(is_running)
+        while(is_running_.load())
         {
                 SHOW_FUNCTION_INFO
                 break;
         }
+        //before finished main loop, block front_end_thread and back_end_thread;
+        sp_tracker_->stop();
+        sp_optimizer_->stop();
+        sp_viewer_->stop();
+        
 }
 
 
