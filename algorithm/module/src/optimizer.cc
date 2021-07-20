@@ -26,9 +26,14 @@ void Optimizer::back_end_loop()
 {
         while (is_running_.load())
         {
-                // wp_map_->is_front_end_updated.wait(this->wp_map_->data_lock_);
+                // std::this_thread::sleep_for(std::chrono::milliseconds(800));
                 SHOW_FUNCTION_INFO
-                std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                //后端等待前端发送地图更新消息；
+                wp_map_.lock()->condition_var_is_map_updated_.wait(wp_map_.lock()->data_lock_);
+                DLOG_INFO << " optimizer received map update " << std::endl;
+                // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+                DLOG_INFO << " optimizer notify all " << std::endl;
+                wp_map_.lock()->condition_var_is_map_updated_.notify_all();
         }
         
 }

@@ -17,19 +17,20 @@ struct SystemConfig {
     public:
         SystemConfig() {}
         ~SystemConfig();
-        static SystemConfig* getSystemConfig(const int64_t &i_pyrimid_levels_num, const double_t &d_pyrimid_scale, 
+        static std::shared_ptr<SystemConfig> getSystemConfig(const int64_t &i_pyrimid_levels_num, const double_t &d_pyrimid_scale, 
                                                                                         const int64_t &i_fps );
         //pyrimid config;
         int64_t pyrimid_levels_num {4};
         double_t pyrimid_scale {0.5};
         std::vector<double_t>  v_pyrimid_scales;
         int64_t fps{10};
+        double_t per_frame_process_time {1000.0 / fps} ;
 
     private:
         SystemConfig(const int64_t &i_pyrimid_levels_num, const double_t &d_pyrimid_scale, const int64_t &i_fps );
 
         //TODO(snowden): need add synchronized operate for mulit thread;
-        static SystemConfig* system_config;
+        static std::shared_ptr<SystemConfig>  system_config;
 
 }; //SystemConfig
 

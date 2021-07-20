@@ -1,6 +1,6 @@
 ### 工厂模式
 
-通俗的说，工厂模式就是设计一个同意的订货接口，然后让一个工厂类去实现这个接口，用户只需要告诉工厂类需要什么样的产品，工厂类根据用于需求，产生不同的商品；
+通俗的说，工厂模式就是设计一个统一的订货接口，然后让一个工厂类去实现这个接口，用户只需要告诉工厂类需要什么样的产品，工厂类根据用于需求，产生不同的商品；
 
 ![image-20210716160717690](typora_image/image-20210716160717690.png)
 
@@ -9,9 +9,9 @@
 ### 单例模式
 
 ```cpp
-/*饿汉模式
+/*饿汉模式  初始化的时候，直接就创建了对象；
 * 缺点： 只能使用默认的构造函数，无法使用外部参数对其进行初始化；
-* 优点： 由于在创建对象的时候就进行了对象的定义，所以不存在多线程竞争的影响；
+* 优点： 由于在创建类的时候就进行了对象的定义，所以不存在多线程竞争的影响；
 */
 public class Singleton {  
     private static Singleton instance = new Singleton();  
@@ -155,9 +155,9 @@ int main(int argc, char* argv[]) {
     google::InitGoogleLogging(argv[0]);
 
     // ...
-    LOG(INFO) << "Found " << num_cookies << " cookies";
-    DLOG(INFO) << "Found cookies";
-	DLOG_IF(INFO, num_cookies > 10) << "Got lots of cookies";
+    LOG_INFO << "Found " << num_cookies << " cookies";
+    DLOG_INFO << "Found cookies";
+	DLOG_if (INFO, num_cookies > 10) << "Got lots of cookies";
     CHECK(fp->Write(x) == 4) << "Write failed!";
     CHECK_NE(1, 2) << ": The world must be ending!";
     CHECK_EQ(string("abc")[1], ’b’);
@@ -202,6 +202,7 @@ int main()
 //get_id
   std::thread t2(foo);
   std::thread::id t2_id = t2.get_id();
+std::this_thread::get_id();
 
 //joinable
 //检查线程是否可被 join。检查当前的线程对象是否表示了一个活动的执行线程，由默认构造函数创建的线程是不能被 join 的。
@@ -247,7 +248,7 @@ t.detach();
   int policy; 
   pthread_getschedparam(t1.native_handle(), &policy, &sch);
   sch.sched_priority = 20;
-  if(pthread_setschedparam(t1.native_handle(), SCHED_FIFO, &sch)) {
+  if (pthread_setschedparam(t1.native_handle(), SCHED_FIFO, &sch)) {
       std::cout << "Failed to setschedparam: " << std::strerror(errno) << '\n';
   }
 
@@ -280,7 +281,7 @@ int main()
 }
 
 //yield 
-//当前线程放弃执行，操作系统调度另一个线程继续执行；
+//当前线程放弃执行，通知操作系统调度另一个线程继续执行；
 void little_sleep(std::chrono::microseconds us)
 {
   auto start = std::chrono::high_resolution_clock::now();
@@ -557,7 +558,7 @@ int main ()
 
 **有关atomic 、 condition_variable 、unique_lock 和 mutex 的通俗解释**
 
-个人理解： mutex 提供了底层的锁机制，而unique_lock 是对mutex的一种包装，在mutex的基础上提供了其他一些机制，比如延时锁，atomic是为了让变量在操作过程中不被其他线程同时操作，执行原子操作，condition_variable 执行的是多个线程之间的通信；
+个人理解： mutex 提供了底层的锁机制，而unique_lock 是对mutex的一种包装，在mutex的基础上提供了其他一些机制，比如延时锁，atomic是为了让变量在操作过程中不被其他线程干扰，从而可以执行原子操作，condition_variable 执行的是多个线程之间的通信；
 
 总的来说： atomic 、 mutex 和 unique_lock 主要实现的是线程之间的互斥机制；
 
@@ -589,7 +590,35 @@ int main ()
 
 ### 智能指针VS 常规指针
 
+weak_ptr 的使用：
 
+​	weak_ptr 不能直接访问所指对象的内容，而是要先获得临时所有权才可以，这个可以通过 .lock()函数来实现；
+
+> `std::weak_ptr` is a smart pointer that holds a non-owning ("weak") reference to an object that is managed by [std::shared_ptr](https://en.cppreference.com/w/cpp/memory/shared_ptr). It must be converted to [std::shared_ptr](https://en.cppreference.com/w/cpp/memory/shared_ptr) in order to access the referenced object.
+>
+> If the original [std::shared_ptr](https://en.cppreference.com/w/cpp/memory/shared_ptr) is destroyed at this time, the object's lifetime is extended until the temporary [std::shared_ptr](https://en.cppreference.com/w/cpp/memory/shared_ptr) is destroyed as well.
+
+常用函数：
+
+| [reset](https://en.cppreference.com/w/cpp/memory/weak_ptr/reset) | releases the ownership of the managed object             |
+| ------------------------------------------------------------ | -------------------------------------------------------- |
+| [expired](https://en.cppreference.com/w/cpp/memory/weak_ptr/expired) | checks whether the referenced object was already deleted |
+
+| [lock](https://en.cppreference.com/w/cpp/memory/weak_ptr/lock) | creates a `shared_ptr` that manages the referenced object |
+| ------------------------------------------------------------ | --------------------------------------------------------- |
+|                                                              |                                                           |
+
+使用案例
+
+```cpp
+wp_map_.lock()->condition_var_is_map_updated_.wait(wp_map_.lock()->data_lock_);
+```
+
+
+
+参考链接：
+
+https://en.cppreference.com/w/cpp/memory/weak_ptr
 
 ### 类型转换对比
 
@@ -603,3 +632,6 @@ int main ()
 
 
 
+### linux 相关 优质网址：
+
+https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/gdb.html

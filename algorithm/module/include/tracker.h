@@ -31,21 +31,24 @@ class Optimizer;
 class Tracker {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-        enum class TrackerStatus : std::int64_t {
-                TRACKER_STATUS_READY,
-                TRACKER_STATUS_INITING,
-                TRACKER_STATUS_TRACKING,
-                TRACKER_STATUS_NEED_INSERT_KEYFRAM,
-                TRACKER_STATUS_LOST,
-                TRACKER_STATUS_REST,
-                TRACKER_STATUS_UNKONW,
-                TRACKER_STATUS_NUM
+        enum class FrontEndStatus : std::int64_t {
+                READY,
+                INITING,
+                TRACKING,
+                NEED_INSERT_KEYFRAM,
+                LOST,
+                RESET,
+                FINISHED,
+                UNKONW,
+                NUM
         };
         Tracker( std::weak_ptr<Map> map, const std::shared_ptr<SystemConfig>  sp_slam_config, 
                           const std::shared_ptr<CameraConfig> sp_camera_config);
         ~Tracker() {};
         void stop();
-       
+        FrontEndStatus get_front_end_status() { return enum_front_end_status_; }
+        bool set_front_end_status(FrontEndStatus new_status);
+
     
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Optimizer> wp_optimizer_;
@@ -66,7 +69,7 @@ class Tracker {
         int64_t reset_inliers_num_threshold_ { 10000000 };
         //if inliers num < need_insert_keyframe_inliers_num_threshold_, insert a keyframe;
         int64_t need_insert_keyframe_inliers_num_threshold_ { 10000000 };
-        TrackerStatus enum_tracker_status_ { TrackerStatus::TRACKER_STATUS_UNKONW };
+        FrontEndStatus enum_front_end_status_ { FrontEndStatus::UNKONW };
         std::thread front_end_thread_;
 
 
@@ -74,7 +77,10 @@ class Tracker {
 
     private:
         void front_end_loop();
-
+        bool init_front_end();
+        FrontEndStatus tracking();
+        bool insert_keyframe();
+        bool reset();
         std::atomic<bool> is_running_;
 
 

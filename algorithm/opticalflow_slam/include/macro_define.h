@@ -23,7 +23,7 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 #define BOLDWHITE   "\033[1m\033[37m"      /* Bold White */
 
 //Macro swithc : to print function info or not;
- #define DEBUG_WITH_FUNCTION_INFO   
+//  #define DEBUG_WITH_FUNCTION_INFO   
 #ifdef DEBUG_WITH_FUNCTION_INFO
 #define SHOW_FUNCTION_INFO \
         { std::cout <<BOLDCYAN << " INFO :  " << RESET_COLOR << "function: " <<  __FUNCTION__  << "  line: " <<  __LINE__  << "  file: " << __FILE__  << std::endl; }
@@ -31,7 +31,16 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 #define SHOW_FUNCTION_INFO
 #endif
 
+#include<glog/logging.h>
+#define DLOG_INFO (DLOG(INFO)<< BOLDCYAN<< " D->INFO: "<<RESET_COLOR)
+#define DLOG_WARNING (DLOG(WARNING)<< BOLDYELLOW<< " D->WARNING: "<<RESET_COLOR)
+#define DLOG_ERROR (DLOG(ERROR)<< BOLDRED<< " D->ERROR"<<RESET_COLOR) 
+#define DLOG_FATAL (DLOG(FATAL)<< BOLDMAGENTA<< " D->FATAL"<<RESET_COLOR) 
 
+#define LOG_INFO (LOG(INFO)<< BOLDCYAN<< " INFO: "<<RESET_COLOR)
+#define LOG_WARNING (LOG(WARNING)<< BOLDYELLOW<< " WARNING: "<<RESET_COLOR)
+#define LOG_ERROR (LOG(ERROR)<< BOLDRED<< " ERROR: "<<RESET_COLOR) 
+#define LOG_FATAL (LOG(FATAL)<< BOLDMAGENTA<< " FATAL: "<<RESET_COLOR) 
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam
 

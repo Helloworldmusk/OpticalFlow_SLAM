@@ -48,4 +48,7 @@ typedef Eigen::Matrix<float_t, 2, 1> Vec2f;
 typedef Sophus::SE3d SE3;
 typedef Sophus::SO3d SO3;
 
+
+
+
 #endif //OPTICALFLOW_SLAM_ALGORITHM_COMMON_INCLUDE_H_

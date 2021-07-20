@@ -77,3 +77,5 @@ __GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:51
 ![image-20210719165105978](typora_image/image-20210719165105978.png)
 
 ​				
+
+原因： 对于创建的两个线程，在主线程中没有使用join() 进行阻塞，导致主线程提前结束了，

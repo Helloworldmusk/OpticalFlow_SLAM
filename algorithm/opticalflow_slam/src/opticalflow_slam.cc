@@ -2,6 +2,8 @@
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam{
 
+
+
 /**
  * @brief create a op_slam, load system config , camera_config and dataset, 
  * to filling  slam_config_ , camera_config_ and image_left_right
@@ -55,23 +57,21 @@ bool OP_SLAM::init()
 {
         SHOW_FUNCTION_INFO
 
-        //TODO(snowden):need to get slam status first;
-        is_running_.store(true);
-        if( OP_SLAM_STATUS::READY != get_status() && OP_SLAM_STATUS::RESET != get_status() ) 
+
+        if ( OP_SLAM_STATUS::READY != get_status() && OP_SLAM_STATUS::RESET != get_status() ) 
         {
-                LOG(ERROR) << "op_slam_status" <<  static_cast<int64_t>(get_status()) <<  " can't change to  init" << std::endl; 
+                LOG_ERROR << "op_slam_status" <<  static_cast<int64_t>(get_status()) <<  " can't change to  init" << std::endl; 
                 return false;
         }
-        //init Map
-        sp_map_ = std::shared_ptr<Map>(new Map());
-        //init Tracker
-        sp_tracker_ = std::shared_ptr<Tracker>(new Tracker(sp_map_, sp_slam_config_, sp_camera_config_));
-        //init Optimizer
-        sp_optimizer_ = std::shared_ptr<Optimizer>(new Optimizer(sp_map_, sp_slam_config_, sp_camera_config_));
-
-        sp_viewer_  = std::shared_ptr<Viewer>(new Viewer(sp_map_, sp_tracker_, sp_optimizer_));
-        
-
+         //init Map
+         sp_map_ = std::shared_ptr<Map>(new Map());
+         //TODO(snowden): parameter need read from config file;
+         uint64_t pyrimid_level_num = 7;
+         double_t pyrimid_scale = 0.5;
+         uint64_t fps = 10;
+        sp_slam_config_ = SystemConfig::getSystemConfig(pyrimid_level_num, pyrimid_scale, fps);
+        //TODO(snowden):need to get slam status first;
+        is_running_.store(true);
 }
 
 
@@ -84,10 +84,18 @@ bool OP_SLAM::init()
 bool OP_SLAM::run()
 {
         SHOW_FUNCTION_INFO
-        while(is_running_.load())
+        if (is_running_.load())
         {
-                SHOW_FUNCTION_INFO
-                break;
+                 /**
+                  * @note tracker will notify viewer and optimizer, and optimizer will notify viewer ,so init order must be :
+                  *  viewer -> optimizer -> tracker;
+                  */ 
+                 //start viewer thread;
+                 sp_viewer_  = std::shared_ptr<Viewer>(new Viewer(sp_map_, sp_tracker_, sp_optimizer_));
+                 //start optimizer thread;
+                 sp_optimizer_ = std::shared_ptr<Optimizer>(new Optimizer(sp_map_, sp_slam_config_, sp_camera_config_));
+                 //start tracker thread;
+                 sp_tracker_ = std::shared_ptr<Tracker>(new Tracker(sp_map_, sp_slam_config_, sp_camera_config_));
         }
         //before finished main loop, block front_end_thread and back_end_thread;
         sp_tracker_->stop();

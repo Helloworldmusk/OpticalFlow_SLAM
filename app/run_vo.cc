@@ -18,7 +18,7 @@ int main(int argc, char* argv[])
         //show log from INFO 
         FLAGS_minloglevel=0 ;
         google::InitGoogleLogging(argv[0]);
-        DLOG(INFO) << " this is a dlog test " << std::endl;
+        DLOG_INFO << " this is a dlog test " << std::endl;
         std::string system_config_path = "";
         std::string camera_config_path = "";
         std::string data_set_path = "";

@@ -2,7 +2,7 @@
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 
- SystemConfig* SystemConfig::system_config = nullptr;
+std::shared_ptr<SystemConfig>  SystemConfig::system_config = nullptr;
 
 /**
  * @brief Singleton Pattern, to get a SystemConfig instance
@@ -12,7 +12,7 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
  * @note  need add sysnchronized operation
  * @warning : if call getSystemConfig twice, the second call will use the first instance, not second 
  */
-SystemConfig* SystemConfig::getSystemConfig(const int64_t &i_pyrimid_levels_num, const double_t &d_pyrimid_scale, 
+std::shared_ptr<SystemConfig>  SystemConfig::getSystemConfig(const int64_t &i_pyrimid_levels_num, const double_t &d_pyrimid_scale, 
                                                                                                    const int64_t &i_fps )
 {
         
@@ -21,7 +21,7 @@ SystemConfig* SystemConfig::getSystemConfig(const int64_t &i_pyrimid_levels_num,
                 //TODO(snowden): need add synchronized operate for mulit thread; DCL， synchronized (SystemConfig.class)  reference: https://www.runoob.com/design-pattern/singleton-pattern.html
                 if (nullptr == system_config)
                 {
-                        system_config = new SystemConfig(i_pyrimid_levels_num, d_pyrimid_scale, i_fps);
+                        system_config = std::shared_ptr<SystemConfig>(new SystemConfig(i_pyrimid_levels_num, d_pyrimid_scale, i_fps));
                 }
         }
         else if ((system_config->pyrimid_levels_num != i_pyrimid_levels_num) ||
@@ -53,11 +53,11 @@ SystemConfig::SystemConfig(const int64_t &i_pyrimid_levels_num, const double_t &
                 v_pyrimid_scales.push_back(v_pyrimid_scales[v_pyrimid_scales.size() - 1] * pyrimid_scale );
         }
         //TODO(snowden) the loop just for test, need to be deleted;
-        std::cout << " pyrimid_scales: ";
-        for(int i = 0; i < pyrimid_levels_num ; i++ )
-        {
-                std::cout << v_pyrimid_scales[i] << " -> " << std::endl;
-        }
+        // std::cout << " pyrimid_scales: ";
+        // for(int i = 0; i < pyrimid_levels_num ; i++ )
+        // {
+        //         std::cout << v_pyrimid_scales[i] << " -> " << std::endl;
+        // }
 }
 
 

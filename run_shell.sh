@@ -8,8 +8,8 @@ echo " run_shell: deleting content in build folder............................. 
 rm -r *
 
 echo " run_shell: compile code............................. "
-cmake ..
-make -j8
+cmake .. > compile_log.log
+make -j8 
 
 echo " run_shell: ready run run_vo "
 cd ../bin

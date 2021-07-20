@@ -27,7 +27,10 @@ void Viewer::viewer_loop()
         while (is_running_.load())
         {
                 SHOW_FUNCTION_INFO
-                std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+                // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                //等待地图更新的通知；
+                wp_map_.lock()->condition_var_is_map_updated_.wait(wp_map_.lock()->data_lock_);
+                DLOG_INFO << " viewer received map update " << std::endl;
         }
         
 }

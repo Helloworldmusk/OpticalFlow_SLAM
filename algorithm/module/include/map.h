@@ -37,7 +37,8 @@ class Map {
         std::weak_ptr<Frame> wp_last_frame_;
         std::mutex data_mutex_;
         std::unique_lock<std::mutex> data_lock_{data_mutex_};       
-        std::condition_variable is_front_end_updated;
+        std::condition_variable condition_var_is_map_updated_;
+
     protected:
 
     private:
