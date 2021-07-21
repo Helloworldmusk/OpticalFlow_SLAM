@@ -8,9 +8,11 @@ echo " run_shell: deleting content in build folder............................. 
 rm -r *
 
 echo " run_shell: compile code............................. "
-cmake .. > compile_log.log
-make -j8 
 
+cmake .. 
+echo " please enture make result ***************************start******************************"
+make -j8 
+echo " please enture make result ***************************end******************************"
 echo " run_shell: ready run run_vo "
 cd ../bin
 

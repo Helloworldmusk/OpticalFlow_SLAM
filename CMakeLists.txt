@@ -15,7 +15,5 @@ message(" current  source dir : ${PROJECT_SOURCE_DIR}" )
 # Algorithm
 include_directories(${PROJECT_SOURCE_DIR}/algorithm)
 
-
-
 add_subdirectory(algorithm)
 add_subdirectory(app)

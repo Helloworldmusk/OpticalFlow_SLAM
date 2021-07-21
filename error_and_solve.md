@@ -79,3 +79,52 @@ __GI_raise (sig=sig@entry=6) at ../sysdeps/unix/sysv/linux/raise.c:51
 ​				
 
 原因： 对于创建的两个线程，在主线程中没有使用join() 进行阻塞，导致主线程提前结束了，
+
+
+
+编译错误：
+
+error: extra qualification ‘OpticalFlow_SLAM_algorithm_opticalflow_slam::Tracker::’ on member ‘set_front_end_status’ [-fpermissive]
+
+bool Tracker::set_front_end_status(const FrontEndStatus new_status);
+
+![image-20210721094026402](typora_image/image-20210721094026402.png)
+
+
+
+原因：        bool Tracker::set_front_end_status(const FrontEndStatus new_status);在类内声明的时候，不应该加入该类的作用域限定符；
+
+解决办法： 删除Tracker::即可；
+
+
+
+
+
+运行错误：terminate called without an active exception
+
+![image-20210721173733000](typora_image/image-20210721173733000.png)
+
+子线程还没有结束的时候，主线程却提前结束了；对任务线程在主线程中加join即可；
+
+https://blog.csdn.net/github_20066005/article/details/79999530
+
+
+
+运行异常：
+
+通过主线程调用tarcker的 notify 去通知 viewer 线程 和 optimizer 线程进行终止， 然后去调用 viewer 和 optimizer  的.join阻塞等待，发现系统卡在了这里，不动了；
+
+![image-20210721192447351](typora_image/image-20210721192447351.png)
+
+原因分析：还是两个线程没有彻底关闭；
+
+解决方案：调用detach()而不是join()；
+
+```cpp
+void Optimizer::stop()
+{
+        //TODO(snowden) : directly detach thread , if this thread will be terminated ? 
+        back_end_thread_.detach();
+}
+```
+

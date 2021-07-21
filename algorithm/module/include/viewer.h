@@ -12,6 +12,9 @@
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 
+class Tracker;
+class Optimizer;
+
 /**
  * @brief Viewer
  * @author snowden
@@ -27,20 +30,21 @@ class Viewer {
         ~Viewer() { };
         void stop();
 
-
-
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Optimizer> wp_optimizer_;
         std::weak_ptr<Tracker> wp_tracker_;
         std::weak_ptr<Frame> wp_current_frame_; 
         std::vector<std::weak_ptr<Mappoint3d>> vsp_mappoint_;
         std::thread viewer_thread_;
+        std::atomic<bool> is_running_;
     protected:
         
     private:
         void viewer_loop();
+        bool wait_update_map_notify();
+        bool update_viewer();
         
-        std::atomic<bool> is_running_;
+
         
 
 }; //Viewer

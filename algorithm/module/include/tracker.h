@@ -6,6 +6,7 @@
 #include <thread>
 #include <chrono>
 #include <atomic>
+#include <condition_variable>
 
 #include "algorithm/base_component/include/feature2d.h"
 #include "algorithm/base_component/include/frame.h"
@@ -15,11 +16,13 @@
 #include "algorithm/base_component/include/camera_config.h"
 #include "algorithm/module/include/map.h"
 #include "algorithm/module/include/optimizer.h"
+#include "algorithm/module/include/viewer.h"
 #include "algorithm/opticalflow_slam/include/macro_define.h"
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 
 class Optimizer;
+class Viewer;
 
 /**
  * @brief Tracker
@@ -39,7 +42,7 @@ class Tracker {
                 LOST,
                 RESET,
                 FINISHED,
-                UNKONW,
+                UNKNOW,
                 NUM
         };
         Tracker( std::weak_ptr<Map> map, const std::shared_ptr<SystemConfig>  sp_slam_config, 
@@ -47,11 +50,12 @@ class Tracker {
         ~Tracker() {};
         void stop();
         FrontEndStatus get_front_end_status() { return enum_front_end_status_; }
-        bool set_front_end_status(FrontEndStatus new_status);
+        bool set_front_end_status(const FrontEndStatus &new_status);
 
     
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Optimizer> wp_optimizer_;
+        std::weak_ptr<Viewer> wp_viewer_;
         std::weak_ptr<Frame> wp_current_frame_; 
         std::weak_ptr<Frame> wp_last_frame_;
         std::shared_ptr<SystemConfig>  sp_slam_config_;
@@ -69,9 +73,13 @@ class Tracker {
         int64_t reset_inliers_num_threshold_ { 10000000 };
         //if inliers num < need_insert_keyframe_inliers_num_threshold_, insert a keyframe;
         int64_t need_insert_keyframe_inliers_num_threshold_ { 10000000 };
-        FrontEndStatus enum_front_end_status_ { FrontEndStatus::UNKONW };
+        FrontEndStatus enum_front_end_status_ { FrontEndStatus::UNKNOW };
         std::thread front_end_thread_;
-
+        std::mutex tracker_finished_mutex;
+        std::unique_lock<std::mutex> tracker_finished_lock {tracker_finished_mutex};
+        //TODO(snowden) : viewer and optimizer also need deal with this notify();
+        std::condition_variable condition_variable_is_tracker_finished_;
+        std::atomic<bool> is_running_;
 
     protected:
 
@@ -81,7 +89,11 @@ class Tracker {
         FrontEndStatus tracking();
         bool insert_keyframe();
         bool reset();
-        std::atomic<bool> is_running_;
+        void notify_all_updated_map();
+        void notify_all_tracker_finished();
+        //data
+
+
 
 
 }; //Tracker

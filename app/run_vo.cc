@@ -23,11 +23,10 @@ int main(int argc, char* argv[])
         std::string camera_config_path = "";
         std::string data_set_path = "";
         std::string save_mat_path = "";
-        std::unique_ptr<SLAM::OP_SLAM> up_slam { 
+        std::unique_ptr<SLAM::OP_SLAM> op_slam { 
                 new SLAM::OP_SLAM(system_config_path, camera_config_path, data_set_path, save_mat_path)  };
-        up_slam->init();
-        up_slam->run();
-        up_slam->save_map();
+        op_slam->opticalflow_slam_loop();
+
 
 }
 

@@ -15,6 +15,7 @@
 #include "algorithm/base_component/include/camera_config.h"
 #include "algorithm/module/include/map.h"
 #include "algorithm/module/include/tracker.h"
+#include "algorithm/module/include/viewer.h"
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 
@@ -31,32 +32,43 @@ class Optimizer {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-        enum class OptimizerStatus : std::int64_t {
-                OPTIMIZER_STATUS_READY,
-                OPTIMIZER_STATUS_IDLE,
-                OPTIMIZER_STATUS_OPTIMIZING,
-                OPTIMIZER_STATUS_UNKONW,
-                OPTIMIZER_STATUS_NUM
+        enum class BackEndStatus : std::int64_t {
+                READY,
+                INIT,
+                IDLE,
+                OPTIMIZING,
+                FINISHED,
+                RESET,
+                UNKNOW,
+                NUM
         };
 
         Optimizer( std::weak_ptr<Map> map, const std::shared_ptr<SystemConfig>  sp_slam_config, 
                                const std::shared_ptr<CameraConfig> sp_camera_config);
         ~Optimizer()  { };
         void stop();
+        BackEndStatus get_back_end_status() { return enum_back_end_status_; }
+        bool set_back_end_status(const BackEndStatus &new_status);
     
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Tracker> wp_tracker_;
+        std::weak_ptr<Viewer> wp_viewer_;
         std::shared_ptr<SystemConfig>  sp_slam_config_;
         std::shared_ptr<CameraConfig> sp_camera_config_;
+        std::atomic<bool>  is_running_;
 
     protected:
 
     private:
 
         void back_end_loop();
-
+        bool init_back_end();
+        bool wait_update_map_notify();
+        void notify_all_updated_map();
+        BackEndStatus optimize();
+        BackEndStatus enum_back_end_status_ { BackEndStatus::UNKNOW };
         std::thread back_end_thread_;
-        std::atomic<bool>  is_running_;
+        
 
 }; //Optimizer
 

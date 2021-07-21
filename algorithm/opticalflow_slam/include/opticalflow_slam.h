@@ -23,12 +23,12 @@ class OP_SLAM {
     public:
         //typedefs
         //enum
-        enum class OP_SLAM_STATUS : std::int64_t{
+        enum class OP_SLAM_STATUS : std::int64_t {
             READY,
             INITING,
-            RUNING,
-            FINISHED,
+            RUNNING,
             SAVINGMAP,
+            FINISHED,
             RESET,
             UNKNOW,
             NUM
@@ -38,12 +38,10 @@ class OP_SLAM {
                             const std::string dataset_path,  const std::string save_map_path);
         ~OP_SLAM();
         //member function
-        bool init( );
-        bool run();
-        bool save_map();
+        void opticalflow_slam_loop();
         //set/get
         OP_SLAM_STATUS get_status() { return slam_status_ ;}
-        bool set_status(OP_SLAM_STATUS new_status);
+        bool set_status(const OP_SLAM_STATUS &new_status);
         //data
         std::vector<std::pair<cv::Mat, cv::Mat>> image_left_right;
         std::shared_ptr<Map> sp_map_;
@@ -54,18 +52,22 @@ class OP_SLAM {
 
     private:
 
+        bool init();
+        bool run();
+        bool save_map();
+        bool stop_slam();
         bool load_system_config();
         bool load_camera_config();
         bool load_images();
+        void wait_notify_all_tracker_finished();
 
         //data
         std::string system_config_path_;
         std::string camera_config_path_;
         std::string dataset_path_;
         std::string save_map_path_;
-
         std::atomic<bool> is_running_;
-        OP_SLAM_STATUS slam_status_ = OP_SLAM_STATUS::READY;
+        OP_SLAM_STATUS slam_status_ = OP_SLAM_STATUS::UNKNOW;
         std::shared_ptr<SystemConfig>  sp_slam_config_;
         std::shared_ptr<CameraConfig> sp_camera_config_;
         double_t rpe { 0.0 };
