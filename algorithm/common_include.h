@@ -5,10 +5,12 @@
 //c++ lib
 #include <cstdint>
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <memory>
 //third lib
 #include <opencv2/core/core.hpp>
+#include <opencv2/core.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <sophus/se3.hpp>

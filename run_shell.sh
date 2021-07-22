@@ -13,7 +13,9 @@ cmake ..
 echo " please enture make result ***************************start******************************"
 make -j8 
 echo " please enture make result ***************************end******************************"
+sleep 5
 echo " run_shell: ready run run_vo "
+sleep 1
 cd ../bin
 
 ./run_vo 

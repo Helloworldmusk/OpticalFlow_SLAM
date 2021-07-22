@@ -15,20 +15,22 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 struct SystemConfig {
          EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     public:
-        SystemConfig() {}
+        
         ~SystemConfig();
-        static std::shared_ptr<SystemConfig> getSystemConfig(const int64_t &i_pyrimid_levels_num, const double_t &d_pyrimid_scale, 
-                                                                                        const int64_t &i_fps );
+        void show_system_config_info();
+        static std::shared_ptr<SystemConfig> getSystemConfig( );        
         //pyrimid config;
         int64_t pyrimid_levels_num {4};
         double_t pyrimid_scale {0.5};
         std::vector<double_t>  v_pyrimid_scales;
         int64_t fps{10};
         double_t per_frame_process_time {1000.0 / fps} ;
+        int64_t features_expected_nums { 100 };
+        int64_t features_init_min_threshold { 50 };
+        int64_t features_tracking_min_threshold { 50 };
 
     private:
-        SystemConfig(const int64_t &i_pyrimid_levels_num, const double_t &d_pyrimid_scale, const int64_t &i_fps );
-
+        SystemConfig(){};
         //TODO(snowden): need add synchronized operate for mulit thread;
         static std::shared_ptr<SystemConfig>  system_config;
 

@@ -133,10 +133,7 @@ bool OP_SLAM::init()
          //init Map
          sp_map_ = std::shared_ptr<Map>(new Map());
          //TODO(snowden): parameter need read from config file;
-         uint64_t pyrimid_level_num = 7;
-         double_t pyrimid_scale = 0.5;
-         uint64_t fps = 10;
-        sp_slam_config_ = SystemConfig::getSystemConfig(pyrimid_level_num, pyrimid_scale, fps);
+        // sp_slam_config_ = SystemConfig::getSystemConfig();
          /**
           * @note tracker will notify viewer and optimizer, and optimizer will notify viewer ,so init order must be :
           *  viewer -> optimizer -> tracker; tracker init will trigger slam run, so put tracker in run funciton; 
@@ -206,17 +203,12 @@ bool OP_SLAM::save_map()
  */
 bool OP_SLAM::stop_slam()
 {
-        DLOG_INFO << " stop slam " << std::endl;
         sp_optimizer_->is_running_.store(false);
         sp_viewer_->is_running_.store(false);
         sp_tracker_->stop();
-        DLOG_INFO << " break point 1" << std::endl;
         sp_optimizer_->stop();
-        DLOG_INFO << " break point 2" << std::endl;
         sp_viewer_->stop(); 
-        DLOG_INFO << " break point 3" << std::endl;
         is_running_.store(false);
-        DLOG_INFO << "stop slam finished " << std::endl;
 }
 
 
@@ -311,6 +303,32 @@ bool OP_SLAM::set_status(const OP_SLAM_STATUS &new_status)
 bool OP_SLAM::load_system_config()
 {
         SHOW_FUNCTION_INFO
+        sp_slam_config_ =  SystemConfig::getSystemConfig( );
+        //TODO 
+        cv::FileStorage f_system_config(system_config_path_, cv::FileStorage::READ);
+        CHECK_EQ(f_system_config.isOpened(), true);
+        //TODO(snowden) : may exit other mothed to achieve read int type data to int64_t directly;
+        int32_t temp_int32_data = -1;
+        f_system_config["pyrimid.levels_num"] >>temp_int32_data;
+        sp_slam_config_->pyrimid_levels_num =  static_cast<int64_t>(temp_int32_data);
+
+        f_system_config["pyrimid.scale"] >> sp_slam_config_->pyrimid_scale;
+
+        f_system_config["fps"] >> temp_int32_data ;
+        sp_slam_config_->fps = static_cast<int64_t>(temp_int32_data);
+
+        f_system_config["features.expected_nums"] >> temp_int32_data;
+        sp_slam_config_->features_expected_nums =  static_cast<int64_t>(temp_int32_data);
+        
+        f_system_config["features.init_min_threshold"] >> temp_int32_data;
+        sp_slam_config_->features_init_min_threshold =  static_cast<int64_t>(temp_int32_data);
+        
+        f_system_config["features.tracking_min_threshold"] >> temp_int32_data;
+        sp_slam_config_->features_tracking_min_threshold =  static_cast<int64_t>(temp_int32_data);
+
+        sp_slam_config_->show_system_config_info();
+
+        f_system_config.release();
         return true;
 }
 
@@ -323,7 +341,52 @@ bool OP_SLAM::load_system_config()
  */
 bool OP_SLAM::load_camera_config()
 {
-        SHOW_FUNCTION_INFO
+        sp_camera_config_ =  CameraConfig::getCameraConfig();
+        std::ifstream fin(camera_config_path_);
+        if(!fin)
+        {
+                LOG_FATAL << " open  " << camera_config_path_ << "failed" << std::endl;
+        }
+        //discard name;
+        char camear_name;
+        for(int k = 0; k < 3; k++)
+        {
+                fin >> camear_name;
+        }
+        //intrinsics with base line;
+        double intrinsics_mat34[12];
+        for(int i = 0; i < 12; i++)
+        {
+                fin >> intrinsics_mat34[i];
+        }
+        sp_camera_config_->K_left << intrinsics_mat34[0], intrinsics_mat34[1], intrinsics_mat34[2],
+                                                                        intrinsics_mat34[4], intrinsics_mat34[5], intrinsics_mat34[6],
+                                                                        intrinsics_mat34[8], intrinsics_mat34[9], intrinsics_mat34[10];
+        sp_camera_config_->fx_left = intrinsics_mat34[0];
+        sp_camera_config_->fy_left = intrinsics_mat34[5];
+        sp_camera_config_->cx_left = intrinsics_mat34[2];
+        sp_camera_config_->cy_left = intrinsics_mat34[6];
+        //discard name;
+        for(int k = 0; k < 3; k++)
+        {
+                fin >> camear_name;
+        }
+        //intrinsics with base line;
+        for(int i = 0; i < 12; i++)
+        {
+                fin >> intrinsics_mat34[i];
+        }
+        sp_camera_config_->K_right << intrinsics_mat34[0], intrinsics_mat34[1], intrinsics_mat34[2],
+                                                                          intrinsics_mat34[4], intrinsics_mat34[5], intrinsics_mat34[6],
+                                                                          intrinsics_mat34[8], intrinsics_mat34[9], intrinsics_mat34[10];                                                
+        Vec3 fxb;
+        fxb << intrinsics_mat34[3], intrinsics_mat34[7], intrinsics_mat34[11];
+        sp_camera_config_->base_line = fxb / intrinsics_mat34[0];
+        sp_camera_config_->fx_right = intrinsics_mat34[0];
+        sp_camera_config_->fy_right = intrinsics_mat34[5];
+        sp_camera_config_->cx_right = intrinsics_mat34[2];
+        sp_camera_config_->cy_right = intrinsics_mat34[6];
+        sp_camera_config_->show_camera_config_info();
         return true;
 }
 

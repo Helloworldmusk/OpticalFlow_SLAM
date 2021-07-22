@@ -678,3 +678,60 @@ https://en.cppreference.com/w/cpp/memory/weak_ptr
 ### linux 相关 优质网址：
 
 https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/gdb.html
+
+
+
+Cmake 构建工程优质链接：
+
+https://segmentfault.com/a/1190000022075547
+
+
+
+
+
+### KITTI calib.txt 中各个参数的说明；
+
+```
+S_xx: 1x2 size of image xx before rectification
+K_xx: 3x3 calibration matrix of camera xx before rectification
+D_xx: 1x5 distortion vector of camera xx before rectification
+R_xx: 3x3 rotation matrix of camera xx (extrinsic)
+T_xx: 3x1 translation vector of camera xx (extrinsic)
+S_rect_xx: 1x2 size of image xx after rectification
+R_rect_xx: 3x3 rectifying rotation to make image planes co-planar
+P_rect_xx: 3x4 projection matrix after rectification
+```
+
+
+
+### 解读KITTI数据集calib.txt参数：
+
+```shell
+//原参数格式：
+P0: 7.070912000000e+02 0.000000000000e+00 6.018873000000e+02 0.000000000000e+00 0.000000000000e+00 7.070912000000e+02 1.831104000000e+02 0.000000000000e+00 0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 0.000000000000e+00
+P1: 7.070912000000e+02 0.000000000000e+00 6.018873000000e+02 -3.798145000000e+02 0.000000000000e+00 7.070912000000e+02 1.831104000000e+02 0.000000000000e+00 0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 0.000000000000e+00
+//->重新排版后；
+//相机1的内参；为主参考相机
+# 7.070912000000e+02 0.000000000000e+00 6.018873000000e+02 0.000000000000e+00
+# 0.000000000000e+00 7.070912000000e+02 1.831104000000e+02 0.000000000000e+00
+# 0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 0.000000000000e+00
+//相机2的内参
+# 7.070912000000e+02 0.000000000000e+00 6.018873000000e+02 -3.798145000000e+02
+# 0.000000000000e+00 7.070912000000e+02 1.831104000000e+02 0.000000000000e+00
+# 0.000000000000e+00 0.000000000000e+00 1.000000000000e+00 0.000000000000e+00
+前三行三列是内参矩阵K, 第四列是平移相关的参数，但是不是直接给的平移，而是其像素距离；f 和b 相乘的负数；负数可能是由于右相机在左相机X的负半轴上；
+```
+
+具体图示：
+
+![img](typora_image/20171025150247668)
+
+所以，要求得b = -fubx/fx; 
+
+参考链接 1：https://blog.csdn.net/yangziluomu/article/details/78339575
+
+参考链接2： https://blog.csdn.net/weixin_39760368/article/details/110804044?utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-17.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-17.control
+
+参考链接3：https://stackoverflow.com/questions/29407474/how-to-understand-the-kitti-camera-calibration-files
+
+参考链接4 ：https://blog.csdn.net/YMWM_/article/details/107669394?utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-8.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-8.control

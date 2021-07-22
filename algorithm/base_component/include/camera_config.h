@@ -15,30 +15,43 @@ struct CameraConfig  {
          EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
     public:
-        CameraConfig() {};
+
         ~CameraConfig() {};
+        void show_camera_config_info();
 
-        static CameraConfig* getCameraConfig(double_t d_fx, double_t d_fy, double_t d_cx, double_t d_cy,
-                                                                                          double_t d_r1, double_t d_r2, double_t d_r3, double_t d_p1, double_t d_p2);
-         double_t fx { 0.0 };
-         double_t fy { 0.0 };
-         double_t cx { 0.0 };
-         double_t cy { 0.0 };
+        static std::shared_ptr<CameraConfig>  getCameraConfig();
+         double_t fx_left { 0.0 };
+         double_t fy_left { 0.0 };
+         double_t cx_left { 0.0 };
+         double_t cy_left { 0.0 };
+         double_t r1_left { 0.0 };
+         double_t r2_left { 0.0 };
+         double_t r3_left { 0.0 };
+         double_t p1_left { 0.0 };
+         double_t p2_left { 0.0 };
 
-         double_t r1 { 0.0 };
-         double_t r2 { 0.0 };
-         double_t r3 { 0.0 };
+         double_t fx_right { 0.0 };
+         double_t fy_right { 0.0 };
+         double_t cx_right { 0.0 };
+         double_t cy_right { 0.0 };
+         double_t r1_right { 0.0 };
+         double_t r2_right { 0.0 };
+         double_t r3_right { 0.0 };
+         double_t p1_right { 0.0 };
+         double_t p2_right { 0.0 };
 
-         double_t p1 { 0.0 };
-         double_t p2 { 0.0 };
+        Mat33 K_left;
+        Mat33 K_right;
+        //@warning: base_line may be negative number,  not absolute distance;
+        Vec3 base_line;
+        Mat44 T_left;
+        Mat44 T_right;
+         
 
     private:
         //TODO(snowden): need add synchronized operate for mulit thread;
-        static CameraConfig* camera_config ;
-
-        CameraConfig(double_t d_fx, double_t d_fy, double_t d_cx, double_t d_cy,
-                                       double_t d_r1, double_t d_r2, double_t d_r3, double_t d_p1, double_t d_p2);
-
+        static std::shared_ptr<CameraConfig> camera_config ;
+        CameraConfig() {};
 
 }; //CameraConfig
 

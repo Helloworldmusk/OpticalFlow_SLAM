@@ -1,6 +1,7 @@
 #ifndef OPTICALFLOW_SLAM_ALGORITHM_OPTICALFLOW_SLAM_OPTICALFLOW_SLAM_H_
 #define OPTICALFLOW_SLAM_ALGORITHM_OPTICALFLOW_SLAM_OPTICALFLOW_SLAM_H_
 
+
 #include "algorithm/common_include.h"
 #include "algorithm/base_component/include/feature2d.h"
 #include "algorithm/base_component/include/frame.h"
