@@ -12,3 +12,6 @@ features.expected_nums: 100
 features.init_min_threshold: 50
 features.tracking_min_threshold: 50
 
+#mappoint
+mappoint.init_min_threshold: 50
+

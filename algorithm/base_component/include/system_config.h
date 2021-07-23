@@ -28,6 +28,7 @@ struct SystemConfig {
         int64_t features_expected_nums { 100 };
         int64_t features_init_min_threshold { 50 };
         int64_t features_tracking_min_threshold { 50 };
+        int64_t mappoint_init_min_threshold { 50 };
 
     private:
         SystemConfig(){};

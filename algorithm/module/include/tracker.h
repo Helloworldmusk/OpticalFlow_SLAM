@@ -1,12 +1,17 @@
 #ifndef OPTICALFLOW_SLAM_ALGORITHM_MODULE_TRACKER_H_
 #define OPTICALFLOW_SLAM_ALGORITHM_MODULE_TRACKER_H_
 
+#include <sstream>
+#include <iomanip>
+
 #include "algorithm/common_include.h"
 
 #include <thread>
 #include <chrono>
 #include <atomic>
 #include <condition_variable>
+
+
 
 #include "algorithm/base_component/include/feature2d.h"
 #include "algorithm/base_component/include/frame.h"
@@ -46,7 +51,7 @@ class Tracker {
                 NUM
         };
         Tracker( std::weak_ptr<Map> map, const std::shared_ptr<SystemConfig>  sp_slam_config, 
-                          const std::shared_ptr<CameraConfig> sp_camera_config);
+                          const std::shared_ptr<CameraConfig> sp_camera_config, std::string dataset_path);
         ~Tracker() {};
         void stop();
         FrontEndStatus get_front_end_status() { return enum_front_end_status_; }
@@ -56,8 +61,8 @@ class Tracker {
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Optimizer> wp_optimizer_;
         std::weak_ptr<Viewer> wp_viewer_;
-        std::weak_ptr<Frame> wp_current_frame_; 
-        std::weak_ptr<Frame> wp_last_frame_;
+        std::shared_ptr<Frame> sp_current_frame_; 
+        std::shared_ptr<Frame> sp_last_frame_;
         std::shared_ptr<SystemConfig>  sp_slam_config_;
         std::shared_ptr<CameraConfig> sp_camera_config_;
         //last frame pose -> current_frame;
@@ -84,6 +89,9 @@ class Tracker {
     protected:
 
     private:
+        std::string dataset_path_;
+        cv::Ptr<cv::GFTTDetector> gftt_detector_;
+
         void front_end_loop();
         bool init_front_end();
         FrontEndStatus tracking();
@@ -91,6 +99,10 @@ class Tracker {
         bool reset();
         void notify_all_updated_map();
         void notify_all_tracker_finished();
+        std::shared_ptr<Frame> get_a_frame();
+        int64_t detect_features();
+        int64_t triangulate_keypoint();
+
         //data
 
 

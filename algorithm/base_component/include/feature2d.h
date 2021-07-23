@@ -23,6 +23,7 @@ class Feature2d {
         static int64_t static_next_2d_id_;
 
         Feature2d();
+        Feature2d(  cv::KeyPoint keypoint);
         Feature2d(const Vec2 position);
         ~Feature2d();
         int64_t get_new_id() { static_next_2d_id_++;  return static_next_2d_id_; }
@@ -30,6 +31,7 @@ class Feature2d {
         int64_t id_ = { -1 };
         bool is_outline_ { false };
         Vec2 position2d_ = Vec2::Zero();
+        cv::KeyPoint cv_keypoint_;
         std::weak_ptr<Mappoint3d> wp_mappiont3d_;
         std::weak_ptr<Frame> wp_frame_;
 

@@ -112,6 +112,7 @@ void SystemConfig::show_system_config_info()
         std::cout << "  features_expected_nums :" <<  features_expected_nums << std::endl;
         std::cout << "  features_init_min_threshold :" << features_init_min_threshold << std::endl;
         std::cout << "  features_tracking_min_threshold :" << features_tracking_min_threshold << std::endl;
+        std::cout << "  mappoint_init_min_threshold :" << mappoint_init_min_threshold << std::endl;
         std::cout << "**************************** system config start  ******************************" << std::endl;        
 } 
 

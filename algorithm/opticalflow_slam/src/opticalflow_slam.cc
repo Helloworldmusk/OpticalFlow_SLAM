@@ -62,7 +62,7 @@ void OP_SLAM::opticalflow_slam_loop()
                                 DLOG_INFO << " OP_SLAM_STATUS::READY " << std::endl;
                                 CHECK_EQ(load_system_config(), true);
                                 CHECK_EQ(load_camera_config(), true);
-                                CHECK_EQ(load_images(), true);
+                                // CHECK_EQ(load_images(), true);
                                 set_status(OP_SLAM_STATUS::INITING);
                                 break;
                         }
@@ -164,7 +164,7 @@ bool OP_SLAM::init()
  */
 bool OP_SLAM::run()
 {
-        sp_tracker_ = std::shared_ptr<Tracker>(new Tracker(sp_map_, sp_slam_config_, sp_camera_config_));
+        sp_tracker_ = std::shared_ptr<Tracker>(new Tracker(sp_map_, sp_slam_config_, sp_camera_config_, dataset_path_));
         if(nullptr == sp_tracker_)
         {
                 return false;
@@ -326,6 +326,9 @@ bool OP_SLAM::load_system_config()
         f_system_config["features.tracking_min_threshold"] >> temp_int32_data;
         sp_slam_config_->features_tracking_min_threshold =  static_cast<int64_t>(temp_int32_data);
 
+        f_system_config["mappoint.init_min_threshold"] >> temp_int32_data;
+        sp_slam_config_->mappoint_init_min_threshold =  static_cast<int64_t>(temp_int32_data);
+
         sp_slam_config_->show_system_config_info();
 
         f_system_config.release();
@@ -391,17 +394,17 @@ bool OP_SLAM::load_camera_config()
 }
 
 
-/**
- * @brief 
- * @author snowden
- * @date 2021-07-18
- * @version 1.0
- */
-bool OP_SLAM::load_images()
-{
-        SHOW_FUNCTION_INFO
-        return true;
-}
+// /**
+//  * @brief 
+//  * @author snowden
+//  * @date 2021-07-18
+//  * @version 1.0
+//  */
+// bool OP_SLAM::load_images()
+// {
+//         SHOW_FUNCTION_INFO
+//         return true;
+// }
 
 
 /**

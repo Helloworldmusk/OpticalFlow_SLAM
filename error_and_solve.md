@@ -18,7 +18,7 @@
 
 解决办法：include_directories(${PROJECT_SOURCE_DIR})
 
-
+注意，这个工作路径仅仅在编译的时候有效，在运行的时候无效，运行的时候，都是基于可执行程序所在的路径为工作路径。
 
 **error: ‘Optimizer’ was not declared in this scope** 
 
@@ -42,7 +42,7 @@
 
 ![image-20210716122844869](typora_image/image-20210716122844869.png)
 
-原因分析： 可能是库没链接上；
+原因分析： 编译的库没链接上；
 
 
 
@@ -123,8 +123,26 @@ https://blog.csdn.net/github_20066005/article/details/79999530
 ```cpp
 void Optimizer::stop()
 {
-        //TODO(snowden) : directly detach thread , if this thread will be terminated ? 
         back_end_thread_.detach();
 }
 ```
 
+
+
+
+
+运行错误：
+
+OpenCV Error: Assertion failed (total() == 0 || data != NULL) in Mat, file /usr/local/include/opencv2/core/mat.inl.hpp, line 443
+terminate called after throwing an instance of 'cv::Exception'
+  what():  /usr/local/include/opencv2/core/mat.inl.hpp:443: error: (-215) total() == 0 || data != NULL in function Mat
+
+cv::Mat mask(sp_current_frame_->left_image_.size(), CV_8UC1, 0);
+
+Mat(Size size, int type, const Scalar& s); s 设置为0 后，会出现这个问题；
+
+![image-20210723171047768](typora_image/image-20210723171047768.png)
+
+原因未知；
+
+需要更改成cv::Mat mask(sp_current_frame_->left_image_.size(), CV_8UC1, cv::Scalar(0));， 不能直接写0；

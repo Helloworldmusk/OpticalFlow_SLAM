@@ -22,10 +22,10 @@ class Frame {
         Frame() {};
         Frame(const int64_t timestamp, const  cv::Mat left_image, const cv::Mat right_image);
         ~Frame();
-        int64_t get_new_id() { static_new_id++ ; return static_new_id; }
+        static int64_t get_new_id() { static_new_id++ ; return static_new_id; }
 
         int64_t id_ { -1 };
-        int64_t timestamp_ { -1 };
+        double_t timestamp_ { -1 };
         cv::Mat left_image_;
         cv::Mat right_image_;
         SE3 pose_  ;

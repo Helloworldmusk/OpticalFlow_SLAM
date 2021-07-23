@@ -667,6 +667,90 @@ https://en.cppreference.com/w/cpp/memory/weak_ptr
 
 ### typedefs
 
+**typedef** - creates an alias that can be used anywhere in place of a (possibly complex) type name.
+
+```cpp
+// simple typedef
+typedef unsigned long ulong;
+ 
+// the following two objects have the same type
+unsigned long l1;
+ulong l2;
+ 
+// more complicated typedef
+typedef int int_t, *intp_t, (&fp)(int, ulong), arr_t[10];
+ 
+// the following two objects have the same type
+int a1[10];
+arr_t a2;
+ 
+// common C idiom to avoid having to write "struct S"
+typedef struct {int a; int b;} S, *pS;
+ 
+// the following two objects have the same type
+pS ps1;
+S* ps2;
+ 
+// error: storage-class-specifier cannot appear in a typedef declaration
+// typedef static unsigned int uint;
+ 
+// typedef can be used anywhere in the decl-specifier-seq
+long unsigned typedef int long ullong;
+// more conventionally spelled "typedef unsigned long long int ullong;"
+ 
+// std::add_const, like many other metafunctions, use member typedefs
+template< class T>
+struct add_const {
+    typedef const T type;
+};
+ 
+typedef struct Node {
+    struct listNode* next; // declares a new (incomplete) struct type named listNode
+} listNode; // error: conflicts with the previously declared struct name
+```
+
+参考链接：https://en.cppreference.com/w/cpp/language/typedef
+
+​					https://docs.microsoft.com/en-us/cpp/cpp/aliases-and-typedefs-cpp?view=msvc-160				　
+
+
+
+### ifstream 读取文件
+
+eof（）返回true时是读到文件结束符0xFF，而文件结束符是最后一个字符的下一个字符
+
+```cpp
+        static std::ifstream fin(dataset_path_+"/times.txt");
+        if(!fin)
+        {
+                LOG_FATAL << " open " << dataset_path_ << "/times.txt  failed " << std::endl; 
+        }
+        fin >> sp_frame->timestamp_ ;
+        if(fin.eof())
+        {
+                return nullptr;
+        }
+```
+
+
+
+### 使用rectangle()确定 感兴趣区域
+
+```cpp
+        cv::Mat mask(sp_current_frame_->left_image_.size(), CV_8UC1, cv::Scalar(0));
+        
+        cv::rectangle(mask, cv::Point2f(100,100), cv::Point2f(1000,400), 255, CV_FILLED);
+
+        std::vector<cv::KeyPoint> keypoints;
+        gftt_detector_->detect(sp_current_frame_->left_image_, keypoints, mask);
+```
+
+注意在定义 mask的时候， cv::Scalar(0), 表示纯黑色， rectangle 时， 将部分区域置为白色，然后在检测的时候，就只会在白色区域进行检测；所以，检测都是检测浅色区域；
+
+
+
+
+
 
 
 ### detach 的作用： 具体的，数据结构是否发生了变化，主线程和子线程之间的数据结构是怎样处理的？

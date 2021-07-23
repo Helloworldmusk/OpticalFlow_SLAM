@@ -9,12 +9,13 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
  * @version 1.0
  */
 Tracker::Tracker( std::weak_ptr<Map> map, const std::shared_ptr<SystemConfig>  sp_slam_config, 
-                                             const std::shared_ptr<CameraConfig> sp_camera_config)
-        : wp_map_(map), sp_slam_config_(sp_slam_config), sp_camera_config_(sp_camera_config)
+                                             const std::shared_ptr<CameraConfig> sp_camera_config , std::string dataset_path)
+        : wp_map_(map), sp_slam_config_(sp_slam_config), sp_camera_config_(sp_camera_config), dataset_path_(dataset_path)
 {
         is_running_.store(true);
         
         front_end_thread_ = std::thread(std::bind(&Tracker::front_end_loop,this));
+        gftt_detector_ = cv::GFTTDetector::create(sp_slam_config_->features_expected_nums, 0.01, 20);
 }
 
 
@@ -87,7 +88,7 @@ bool Tracker::set_front_end_status(const FrontEndStatus &new_status)
                 }
                 case FrontEndStatus::RESET:
                 {
-                        if (enum_front_end_status_ == FrontEndStatus::LOST)
+                        if (enum_front_end_status_ == FrontEndStatus::LOST || enum_front_end_status_ == FrontEndStatus::INITING)
                         {
                                 is_allowed_change = true;
                         }
@@ -228,8 +229,11 @@ void Tracker::front_end_loop()
  */
 bool Tracker::init_front_end()
 {
-        SHOW_FUNCTION_INFO
         //TODO(snowden): init;
+        sp_current_frame_ = get_a_frame();
+        if( nullptr ==  sp_current_frame_) { return false; }
+        if (detect_features() < sp_slam_config_->features_init_min_threshold) { return false; }
+        if (triangulate_keypoint() < sp_slam_config_->mappoint_init_min_threshold) { return false; }
         return true;
 }
 
@@ -290,6 +294,14 @@ bool Tracker::insert_keyframe()
  */
 bool Tracker::reset()
 {
+        //TODO(snowden) : )if reset ,you should set all static variable to default value; for example Frame id;
+        static int64_t reset_counter = 0;
+        reset_counter++;
+        //TODO(snowden): there is need use a variable , not a magic;
+        if(reset_counter > 5)
+        {
+                LOG_FATAL << " tracker reset is over " << reset_counter - 1 << " times " << std::endl;
+        }
         return true;
 }
 
@@ -320,5 +332,101 @@ void Tracker::notify_all_tracker_finished()
         condition_variable_is_tracker_finished_.notify_all();
         DLOG_INFO << " notify all tracker finished " << std::endl;
 }
+
+
+/**
+ * @brief  
+ * @author snowden
+ * @date 2021-07-23
+ * @version 1.0
+ */
+std::shared_ptr<Frame> Tracker::get_a_frame()
+{
+        std::shared_ptr<Frame> sp_frame = std::shared_ptr<Frame>(new Frame);
+        
+        cv::Mat left_image;
+        cv::Mat right_image;
+        std::stringstream temp;
+        temp << std::setw(6) << std::setfill('0') << Frame::get_new_id();
+        std::string left_image_path = dataset_path_ + "/image_0/" +temp.str() + ".png" ;
+        left_image = cv::imread(left_image_path.c_str(),cv::IMREAD_GRAYSCALE);
+        std::string right_image_path = dataset_path_ + "/image_1/" +temp.str() + ".png" ;
+        right_image = cv::imread(right_image_path.c_str(),cv::IMREAD_GRAYSCALE);
+        CHECK_EQ(left_image.data == nullptr, false);
+        CHECK_EQ(right_image.data == nullptr, false);
+
+        sp_frame->left_image_ = left_image;
+        sp_frame->right_image_ = right_image;
+
+        static std::ifstream fin(dataset_path_+"/times.txt");
+        if(!fin)
+        {
+                LOG_FATAL << " open " << dataset_path_ << "/times.txt  failed " << std::endl; 
+        }
+        fin >> sp_frame->timestamp_ ;
+        if(fin.eof())
+        {
+                return nullptr;
+        }
+        DLOG_INFO << " frame time stamp is " << sp_frame->timestamp_ << std::endl;
+        return sp_frame;
+}
+
+
+
+/**
+ * @brief  
+ * @author snowden
+ * @date 2021-07-23
+ * @return the number of feature detected;
+ * @version 1.0
+ */
+int64_t Tracker::detect_features()
+{
+        cv::Mat mask(sp_current_frame_->left_image_.size(), CV_8UC1, cv::Scalar(0));
+        
+        std::vector<cv::KeyPoint> keypoints;
+        if(sp_last_frame_)
+        {
+                for(auto& feature:  sp_last_frame_->vsp_left_feature_)
+                {
+                        cv::rectangle(mask, feature->cv_keypoint_.pt - cv::Point2f(10,10),  feature->cv_keypoint_.pt + cv::Point2f(10,10), cv::Scalar(1), CV_FILLED);
+                }
+                gftt_detector_->detect(sp_current_frame_->left_image_, keypoints, mask);
+        }
+        else
+        {
+                // cv::rectangle(mask, cv::Point2f(0,0),  cv::Point2f(sp_current_frame_->left_image_.cols,sp_current_frame_->left_image_.rows)  , cv::Scalar(1), CV_FILLED);
+                gftt_detector_->detect(sp_current_frame_->left_image_, keypoints);
+        }
+        
+
+        
+        for(auto& keypoint : keypoints)
+        {
+               std::shared_ptr<Feature2d> feature_point = std::shared_ptr<Feature2d>(new Feature2d(keypoint));
+               feature_point->wp_frame_.lock() = sp_current_frame_;
+               sp_current_frame_->vsp_left_feature_.push_back(feature_point);
+               cv::circle(sp_current_frame_->left_image_, keypoint.pt, 3, cv::Scalar(255,255,255));
+        }
+        cv::imshow("frame", sp_current_frame_->left_image_);
+        cv::waitKey(0);
+        return keypoints.size();
+}
+
+
+/**
+ * @brief  
+ * @author snowden
+ * @date 2021-07-23
+ ** @return the number of mappoint successfully triangulated;
+ * @version 1.0
+ */
+int64_t Tracker::triangulate_keypoint()
+{
+        return 1000;
+}
+
+
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam

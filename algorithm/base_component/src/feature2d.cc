@@ -10,12 +10,20 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
  * @date 2021-07-16
  * @version 1.0
  */
-Feature2d:: Feature2d()
+Feature2d::Feature2d()
 {
         //other member use default value;
         id_ = get_new_id();
 }
 
+
+Feature2d::Feature2d(  cv::KeyPoint keypoint) 
+        :cv_keypoint_(keypoint)
+{
+        id_ = get_new_id();
+        position2d_.x() = cv_keypoint_.pt.x;
+        position2d_.y() = cv_keypoint_.pt.y;
+}
 
 /**
  * @brief 
