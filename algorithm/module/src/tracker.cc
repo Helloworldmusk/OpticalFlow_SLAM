@@ -231,8 +231,11 @@ bool Tracker::init_front_end()
 {
         //TODO(snowden): init;
         sp_current_frame_ = get_a_frame();
+        sp_current_frame_->left_pose_ = SE3(SO3(), Vec3(0,0,0));
+        sp_current_frame_->right_pose_ = SE3(SO3(),sp_camera_config_->base_line);
         if( nullptr ==  sp_current_frame_) { return false; }
-        if (detect_features() < sp_slam_config_->features_init_min_threshold) { return false; }
+        if (detect_left_image_features() < sp_slam_config_->features_init_min_threshold) { return false; }
+        if (track_feature_in_right_image() < sp_slam_config_->features_init_min_threshold) { return false; }
         if (triangulate_keypoint() < sp_slam_config_->mappoint_init_min_threshold) { return false; }
         return true;
 }
@@ -381,7 +384,7 @@ std::shared_ptr<Frame> Tracker::get_a_frame()
  * @return the number of feature detected;
  * @version 1.0
  */
-int64_t Tracker::detect_features()
+int64_t Tracker::detect_left_image_features()
 {
         cv::Mat mask(sp_current_frame_->left_image_.size(), CV_8UC1, cv::Scalar(0));
         
@@ -399,9 +402,7 @@ int64_t Tracker::detect_features()
                 // cv::rectangle(mask, cv::Point2f(0,0),  cv::Point2f(sp_current_frame_->left_image_.cols,sp_current_frame_->left_image_.rows)  , cv::Scalar(1), CV_FILLED);
                 gftt_detector_->detect(sp_current_frame_->left_image_, keypoints);
         }
-        
 
-        
         for(auto& keypoint : keypoints)
         {
                std::shared_ptr<Feature2d> feature_point = std::shared_ptr<Feature2d>(new Feature2d(keypoint));
@@ -410,8 +411,58 @@ int64_t Tracker::detect_features()
                cv::circle(sp_current_frame_->left_image_, keypoint.pt, 3, cv::Scalar(255,255,255));
         }
         cv::imshow("frame", sp_current_frame_->left_image_);
-        cv::waitKey(0);
+        cv::waitKey(1000);
         return keypoints.size();
+}
+
+
+
+int64_t Tracker::track_feature_in_right_image()
+{
+        std::vector<cv::Point2f> v_left_keypoints;
+        std::vector<cv::Point2f> v_right_keypoints;
+        // give a init position;
+        for(auto& feature: sp_current_frame_->vsp_left_feature_)
+        {
+                // std::shared_ptr<Feature2d> new_feature = nullptr;
+                auto mappoint =  feature->wp_mappiont3d_.lock();
+                if(mappoint)
+                {
+                        Vec2 project_position = ProjectWorldtoRightCamera(mappoint, sp_current_frame_->right_pose_,  sp_camera_config_);
+                        v_left_keypoints.emplace_back(project_position(0),project_position(1));
+                }
+                else
+                {
+                        //for : first frame, no mappoint;
+                        v_left_keypoints.emplace_back(feature->position2d_.x(), feature->position2d_.y() );
+                }                
+        }
+        //optical flow track;
+        std::vector<uchar> status;
+        cv::Mat error;
+        int64_t good_point_counter = 0;
+        cv::calcOpticalFlowPyrLK(sp_current_frame_->left_image_, sp_current_frame_->right_image_, 
+                                                              v_left_keypoints, v_right_keypoints, status, error); 
+        for (size_t i = 0; i < status.size(); i++)
+        {
+                if (status[i])
+                {
+                        std::shared_ptr<Feature2d> feature 
+                                = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_right_keypoints[i].x, v_right_keypoints[i].y)));
+                        feature->wp_frame_.lock() = sp_current_frame_;
+                        sp_current_frame_->vsp_right_feature_.push_back(feature);
+                        good_point_counter++;
+                }
+                else
+                {
+                        sp_current_frame_->vsp_right_feature_.push_back(nullptr);
+                        //TODO(snowden) : is need  set the left Feature point  as outliners ? 
+                        //sp_current_frame_->vsp_left_feature_[i]->is_outline_ = true;  
+                }
+        }
+        DLOG_INFO << " track in right image : good point counter : " << good_point_counter << std::endl;
+        return good_point_counter;
+        //discard outliners;
 }
 
 

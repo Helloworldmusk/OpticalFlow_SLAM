@@ -28,7 +28,8 @@ class Frame {
         double_t timestamp_ { -1 };
         cv::Mat left_image_;
         cv::Mat right_image_;
-        SE3 pose_  ;
+        SE3 left_pose_ ;
+        SE3 right_pose_;
         std::vector<std::shared_ptr<Feature2d>> vsp_left_feature_;
         std::vector<std::shared_ptr<Feature2d>> vsp_right_feature_;
     protected:

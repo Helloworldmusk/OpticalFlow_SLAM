@@ -19,6 +19,7 @@
 #include "algorithm/base_component/include/mappoint3d.h"
 #include "algorithm/base_component/include/system_config.h"
 #include "algorithm/base_component/include/camera_config.h"
+#include "algorithm/base_component/include/tool.h"
 #include "algorithm/module/include/map.h"
 #include "algorithm/module/include/optimizer.h"
 #include "algorithm/module/include/viewer.h"
@@ -100,7 +101,8 @@ class Tracker {
         void notify_all_updated_map();
         void notify_all_tracker_finished();
         std::shared_ptr<Frame> get_a_frame();
-        int64_t detect_features();
+        int64_t detect_left_image_features();
+        int64_t track_feature_in_right_image();
         int64_t triangulate_keypoint();
 
         //data

@@ -145,4 +145,4 @@ Mat(Size size, int type, const Scalar& s); s 设置为0 后，会出现这个问
 
 原因未知；
 
-需要更改成cv::Mat mask(sp_current_frame_->left_image_.size(), CV_8UC1, cv::Scalar(0));， 不能直接写0；
+需要更改成cv::Mat mask(sp_current_frame_->left_image_.size(), CV_8UC1, cv::Scalar(0));， 不能直接写0；可能是直接写0会认为是空指针，而mat.data不能用空指针；

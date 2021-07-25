@@ -734,6 +734,12 @@ eof（）返回true时是读到文件结束符0xFF，而文件结束符是最后
 
 
 
+### opencv 中的掩模操作 
+
+![image-20210723173045124](typora_image/image-20210723173045124.png)
+
+参考链接： https://www.cnblogs.com/skyfsm/p/6894685.html
+
 ### 使用rectangle()确定 感兴趣区域
 
 ```cpp
@@ -744,10 +750,6 @@ eof（）返回true时是读到文件结束符0xFF，而文件结束符是最后
         std::vector<cv::KeyPoint> keypoints;
         gftt_detector_->detect(sp_current_frame_->left_image_, keypoints, mask);
 ```
-
-注意在定义 mask的时候， cv::Scalar(0), 表示纯黑色， rectangle 时， 将部分区域置为白色，然后在检测的时候，就只会在白色区域进行检测；所以，检测都是检测浅色区域；
-
-
 
 
 
@@ -763,6 +765,72 @@ eof（）返回true时是读到文件结束符0xFF，而文件结束符是最后
 
 https://linuxtools-rst.readthedocs.io/zh_CN/latest/tool/gdb.html
 
+### ldd 查看程序依赖库
+
+- ldd
+
+  作用：用来查看程式运行所需的共享库,常用来解决程式因缺少某个库文件而不能运行的一些问题。
+
+```
+示例：查看test程序运行所依赖的库:
+
+/opt/app/todeav1/test$ldd test
+libstdc++.so.6 => /usr/lib64/libstdc++.so.6 (0x00000039a7e00000)
+libm.so.6 => /lib64/libm.so.6 (0x0000003996400000)
+libgcc_s.so.1 => /lib64/libgcc_s.so.1 (0x00000039a5600000)
+libc.so.6 => /lib64/libc.so.6 (0x0000003995800000)
+/lib64/ld-linux-x86-64.so.2 (0x0000003995400000)
+```
+
+
+
+### 列出所有的网络连接
+
+```
+$lsof -i
+```
+
+
+
+### ps 与grep 组合使用，查找特定进程
+
+```
+[root@localhost test6]# ps -ef|grep ssh
+root      2720     1  0 Nov02 ?        00:00:00 /usr/sbin/sshd
+root     17394  2720  0 14:58 ?        00:00:00 sshd: root@pts/0
+root     17465 17398  0 15:57 pts/0    00:00:00 grep ssh
+```
+
+### ps 进程查看器
+
+Linux中的ps命令是Process Status的缩写。ps命令用来列出系统中当前运行的那些进程。ps命令列出的是当前那些进程的快照，就是执行ps命令的那个时刻的那些进程，如果想要动态的显示进程信息，就可以使用top命令。
+
+### grep 文本搜索
+
+```
+grep match_patten file // 默认访问匹配行
+```
+
+常用参数
+
+- -o 只输出匹配的文本行 **VS** -v 只输出没有匹配的文本行
+
+- - -c 统计文件中包含文本的次数
+
+    grep -c “text” filename
+
+- -n 打印匹配的行号
+
+- -i 搜索时忽略大小写
+
+- -l 只打印文件名
+
+在多级目录中对文本递归搜索(程序员搜代码的最爱）:
+
+```
+grep "class" . -R -n
+```
+
 
 
 Cmake 构建工程优质链接：
@@ -770,6 +838,14 @@ Cmake 构建工程优质链接：
 https://segmentfault.com/a/1190000022075547
 
 
+
+
+
+在多级目录中对文本递归搜索(程序员搜代码的最爱）:
+
+```
+grep "class" . -R -n
+```
 
 
 
@@ -819,3 +895,85 @@ P1: 7.070912000000e+02 0.000000000000e+00 6.018873000000e+02 -3.798145000000e+02
 参考链接3：https://stackoverflow.com/questions/29407474/how-to-understand-the-kitti-camera-calibration-files
 
 参考链接4 ：https://blog.csdn.net/YMWM_/article/details/107669394?utm_medium=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-8.control&depth_1-utm_source=distribute.pc_relevant.none-task-blog-2%7Edefault%7EBlogCommendFromBaidu%7Edefault-8.control
+
+
+
+
+
+### linux中的管道
+
+
+
+### tuple 和 array的区别；
+
+
+
+
+
+### 三角化的过程：
+
+参考代码：
+
+```cpp
+/**
+ * linear triangulation with SVD
+ * @param poses     poses,
+ * @param points    points in normalized plane
+ * @param pt_world  triangulated point in the world
+ * @return true if success
+ */
+inline bool triangulation(const std::vector<SE3> &poses,
+                   const std::vector<Vec3> points, Vec3 &pt_world) {
+    MatXX A(2 * poses.size(), 4);
+    VecX b(2 * poses.size());
+    b.setZero();
+    for (size_t i = 0; i < poses.size(); ++i) {
+        Mat34 m = poses[i].matrix3x4();
+        A.block<1, 4>(2 * i, 0) = points[i][0] * m.row(2) - m.row(0);
+        A.block<1, 4>(2 * i + 1, 0) = points[i][1] * m.row(2) - m.row(1);
+    }
+    auto svd = A.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
+    pt_world = (svd.matrixV().col(3) / svd.matrixV()(3, 3)).head<3>();
+
+    if (svd.singularValues()[3] / svd.singularValues()[2] < 1e-2) {
+        // 解质量不好，放弃
+        return true;
+    }
+    return false;
+}
+```
+
+![img](typora_image/20190507205347396.png)
+
+令： 要求的空间地图点为 Point3d[X,Y,Z].trans;
+
+​		当前已知相机1的坐标系为世界坐标系，相机2的投影矩阵为 Pro2 = [R | t];
+
+​		Pro2 = [P1, P2, P3].trans;
+
+​		Point3d 在相机1的归一化平面投影为A[x1, y1,  1].trans ， 在相机2的归一化平面投影为B[x2, y2, 1].trans
+
+​		则 B = Pro2 \* Point3d / Z；
+
+​		B X B = 0 = B × Pro2 \* Point3d =
+
+$$\left\{\begin{matrix} 0 & -1 & y2 \\ 1 & 0 & -x2, \\ -y1 & x1 & 0 \end{matrix}\right\} $$ \* [P1* Point3d , P2 * Point3d, P3 \* Point3d ] = 0;
+
+展开这个等式后，有一个等式和上面两个等式线性相关，所以一个归一化平面上的点提供了三个等式，除了一个线性相关，实际上一共提供了两个约束条件，所以两个归一化平面上的点，就可以结出三维点Point3d；
+
+联合两个点的等式，有：Mat \* Point3d = 0; 其中Mat = 
+
+![image-20210725201731494](typora_image/image-20210725201731494.png)
+
+​	然后使用SVD分解，就可以得出结果；如果点数超过两个，则可以使用最小二乘法进行；
+
+具体情况可以参考下面链接，但是链接里没有说明的是2d点都是在归一化平面的，而不是在相机平面，而且等式中缺少除以Z, 但是总体上意思是对的；
+
+参考资料： https://blog.csdn.net/YunLaowang/article/details/89640279#commentBox
+
+
+
+
+
+
+
