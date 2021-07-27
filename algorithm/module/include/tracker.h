@@ -6,13 +6,6 @@
 
 #include "algorithm/common_include.h"
 
-#include <thread>
-#include <chrono>
-#include <atomic>
-#include <condition_variable>
-
-
-
 #include "algorithm/base_component/include/feature2d.h"
 #include "algorithm/base_component/include/frame.h"
 #include "algorithm/base_component/include/keyframe.h"
@@ -58,6 +51,7 @@ class Tracker {
         FrontEndStatus get_front_end_status() { return enum_front_end_status_; }
         bool set_front_end_status(const FrontEndStatus &new_status);
 
+
     
         std::weak_ptr<Map> wp_map_;
         std::weak_ptr<Optimizer> wp_optimizer_;
@@ -81,8 +75,9 @@ class Tracker {
         int64_t need_insert_keyframe_inliers_num_threshold_ { 10000000 };
         FrontEndStatus enum_front_end_status_ { FrontEndStatus::UNKNOW };
         std::thread front_end_thread_;
-        std::mutex tracker_finished_mutex;
-        std::unique_lock<std::mutex> tracker_finished_lock {tracker_finished_mutex};
+        // std::mutex frame_pose_mutex_;
+        std::mutex tracker_finished_mutex_;
+        std::unique_lock<std::mutex> tracker_finished_lock {tracker_finished_mutex_};
         //TODO(snowden) : viewer and optimizer also need deal with this notify();
         std::condition_variable condition_variable_is_tracker_finished_;
         std::atomic<bool> is_running_;
@@ -103,7 +98,7 @@ class Tracker {
         std::shared_ptr<Frame> get_a_frame();
         int64_t detect_left_image_features();
         int64_t track_feature_in_right_image();
-        int64_t triangulate_keypoint();
+        int64_t init_map();
 
         //data
 

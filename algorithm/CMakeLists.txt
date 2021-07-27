@@ -7,6 +7,12 @@ include_directories("/usr/include/eigen3")
 find_package(Sophus REQUIRED)
 include_directories(${Sophus_INCLUDE_DIRS})
 
+# pangolin
+# include_directories("/usr/local/include/pangolin")
+include_directories(${Pangolin_INCLUDE_DIRS})
+find_package(Pangolin REQUIRED)
+message("**********************************${Pangolin_INCLUDE_DIRS}******************************************")
+
 # OpenCV
 find_package(OpenCV 3.1 REQUIRED)
 include_directories(${OpenCV_INCLUDE_DIRS})
@@ -21,6 +27,10 @@ find_package (glog 0.6.0 REQUIRED)
 set(THIRD_PARTY_LIBS
         ${OpenCV_LIBS}
         ${Sophus_LIBRARIES}
+        ${Pangolin_LIBRARIES}
+        # GL
+        # GLU 
+        # GLEW 
         glog
         gflags
         )

@@ -165,6 +165,8 @@ bool OP_SLAM::init()
 bool OP_SLAM::run()
 {
         sp_tracker_ = std::shared_ptr<Tracker>(new Tracker(sp_map_, sp_slam_config_, sp_camera_config_, dataset_path_));
+        sp_viewer_->sp_tracker_ = sp_tracker_;
+        sp_viewer_->wp_optimizer_.lock() = sp_optimizer_;
         if(nullptr == sp_tracker_)
         {
                 return false;

@@ -841,14 +841,6 @@ https://segmentfault.com/a/1190000022075547
 
 
 
-在多级目录中对文本递归搜索(程序员搜代码的最爱）:
-
-```
-grep "class" . -R -n
-```
-
-
-
 ### KITTI calib.txt 中各个参数的说明；
 
 ```
@@ -945,7 +937,7 @@ inline bool triangulation(const std::vector<SE3> &poses,
 
 ![img](typora_image/20190507205347396.png)
 
-令： 要求的空间地图点为 Point3d[X,Y,Z].trans;
+令： 假设的空间地图点为 Point3d[X,Y,Z].trans;
 
 ​		当前已知相机1的坐标系为世界坐标系，相机2的投影矩阵为 Pro2 = [R | t];
 
@@ -971,9 +963,101 @@ $$\left\{\begin{matrix} 0 & -1 & y2 \\ 1 & 0 & -x2, \\ -y1 & x1 & 0 \end{matrix}
 
 参考资料： https://blog.csdn.net/YunLaowang/article/details/89640279#commentBox
 
+参考资料2：https://blog.csdn.net/yg838457845/article/details/81293286 （注意关注第二种三角化的方法）
+
+参考资料3： https://blog.csdn.net/YunLaowang/article/details/99414762#commentBox
 
 
 
 
 
+Eigen中的block操作：
+
+```cpp
+#include <Eigen/Dense>
+#include <iostream>
+ 
+using namespace std;
+ 
+int main()
+{
+  Eigen::MatrixXf m(4,4);
+  m <<  1, 2, 3, 4,
+        5, 6, 7, 8,
+        9,10,11,12,
+       13,14,15,16;
+  cout << "Block in the middle" << endl;
+  cout << m.block<2,2>(1,1) << endl << endl;
+  for (int i = 1; i <= 3; ++i)
+  {
+    cout << "Block of size " << i << "x" << i << endl;
+    cout << m.block(0,0,i,i) << endl << endl;
+  }
+}
+output:
+Block in the middle
+ 6  7
+10 11
+
+Block of size 1x1
+1
+
+Block of size 2x2
+1 2
+5 6
+
+Block of size 3x3
+ 1  2  3
+ 5  6  7
+ 9 10 11
+```
+
+| **Block** **operation**                    | Version constructing a dynamic-size block expression | Version constructing a fixed-size block expression |
+| :----------------------------------------- | :--------------------------------------------------- | :------------------------------------------------- |
+| Block of size `(p,q)`, starting at `(i,j)` | matrix.block(i,j,p,q);                               | matrix.block<p,q>(i,j);                            |
+
+
+
+
+
+Eigen 安装的三种方式：
+
+1. 直接将Eigen当做工程的一个子文件夹，直接进行调用；
+
+2. 使用cmake 进行安装，但是安装之后要进行一个软连接，否则在代码里直接写Eigen会不识别；
+
+3. 使用apt 进行安装；
+
+   推荐cmake 安装：
+
+   ```shell
+   mkdir build
+   cd build/
+   //可以直接cmake .. 默认DCMAKE_INSTALL_PREFIX=/usr/local
+   cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+   make install 
+   cd /usr/include 
+   sudo ln -sf eigen3/Eigen Eigen
+   sudo ln -sf eigen3/unsupported unsupported
+   ```
+
+   
+
+参考链接： https://www.jianshu.com/p/5ac511612162
+
+### Eigen 中的基本函数学习
+
+
+
+
+
+### Pangolin 教程：
+
+参考系列教程：（可以关注此人博客，质量较高，还有ceres 和 evo 相关教程）
+
+https://blog.csdn.net/weixin_43991178/article/details/105119610?spm=1001.2014.3001.5501
+
+https://blog.csdn.net/weixin_43991178/article/details/105142470?spm=1001.2014.3001.5501
+
+https://blog.csdn.net/weixin_43991178/article/details/105174734?spm=1001.2014.3001.5501
 

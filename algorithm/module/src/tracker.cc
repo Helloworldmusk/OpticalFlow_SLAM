@@ -150,6 +150,7 @@ void Tracker::front_end_loop()
                                 }
                                 else
                                 {
+                                        notify_all_updated_map();
                                         set_front_end_status(FrontEndStatus::TRACKING);
                                 }
                                 break;
@@ -202,7 +203,7 @@ void Tracker::front_end_loop()
                                 notify_all_updated_map();
                                 //reserve a little time for back_end to deal with last frame;
                                 std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                                notify_all_tracker_finished();
+                                // notify_all_tracker_finished();
                                 break;
                         }
                         case FrontEndStatus::UNKNOW:
@@ -231,12 +232,12 @@ bool Tracker::init_front_end()
 {
         //TODO(snowden): init;
         sp_current_frame_ = get_a_frame();
-        sp_current_frame_->left_pose_ = SE3(SO3(), Vec3(0,0,0));
-        sp_current_frame_->right_pose_ = SE3(SO3(),sp_camera_config_->base_line);
+        sp_current_frame_->set_left_pose(SE3(SO3(), Vec3(0,0,0)));
+        sp_current_frame_->set_right_pose(SE3(SO3(),sp_camera_config_->base_line));
         if( nullptr ==  sp_current_frame_) { return false; }
         if (detect_left_image_features() < sp_slam_config_->features_init_min_threshold) { return false; }
         if (track_feature_in_right_image() < sp_slam_config_->features_init_min_threshold) { return false; }
-        if (triangulate_keypoint() < sp_slam_config_->mappoint_init_min_threshold) { return false; }
+        if (init_map() < sp_slam_config_->mappoint_init_min_threshold) { return false; }
         return true;
 }
 
@@ -410,8 +411,8 @@ int64_t Tracker::detect_left_image_features()
                sp_current_frame_->vsp_left_feature_.push_back(feature_point);
                cv::circle(sp_current_frame_->left_image_, keypoint.pt, 3, cv::Scalar(255,255,255));
         }
-        cv::imshow("frame", sp_current_frame_->left_image_);
-        cv::waitKey(1000);
+        // cv::imshow("frame", sp_current_frame_->left_image_);
+        // cv::waitKey(1000);
         return keypoints.size();
 }
 
@@ -428,7 +429,7 @@ int64_t Tracker::track_feature_in_right_image()
                 auto mappoint =  feature->wp_mappiont3d_.lock();
                 if(mappoint)
                 {
-                        Vec2 project_position = ProjectWorldtoRightCamera(mappoint, sp_current_frame_->right_pose_,  sp_camera_config_);
+                        Vec2 project_position = CoordinateTransformWorldToImage(mappoint, sp_current_frame_->get_right_pose(),  sp_camera_config_->K_left);
                         v_left_keypoints.emplace_back(project_position(0),project_position(1));
                 }
                 else
@@ -473,9 +474,47 @@ int64_t Tracker::track_feature_in_right_image()
  ** @return the number of mappoint successfully triangulated;
  * @version 1.0
  */
-int64_t Tracker::triangulate_keypoint()
+int64_t Tracker::init_map()
 {
-        return 1000;
+        /**access each element, if right feature not null , change coordinate to normalized plane ,  construct a eq to solve , then 
+         *  check if meet the requirement,  then push back 3d point to vector, 
+         */
+        Vec3 normalized_left_point;
+        Vec3 normalized_right_point;
+        Vec3 points_3d;
+        int64_t counter = 0;
+         if(wp_viewer_.lock())
+         {
+                 wp_viewer_.lock()->vsp_mappoint_.clear();
+         }
+        for (int i = 0; i < sp_current_frame_->vsp_left_feature_.size(); i++)
+        {
+                if(nullptr ==  sp_current_frame_->vsp_right_feature_[i]) { continue; }
+                normalized_left_point = CoordinateTransformImageToNormalizedPlane(sp_current_frame_->vsp_left_feature_[i]->position2d_, 
+                                                                                                                                                                      sp_camera_config_->K_left);
+                normalized_right_point = CoordinateTransformImageToNormalizedPlane(sp_current_frame_->vsp_right_feature_[i]->position2d_, 
+                                                                                                                                                                          sp_camera_config_->K_right);
+                if(!TriangulateNormalizedPoint(normalized_left_point, normalized_right_point, 
+                                                                                  sp_current_frame_->get_left_pose(), sp_current_frame_->get_right_pose(), points_3d ))
+                {       
+                        continue;
+                }
+                 counter++;
+                //  DLOG_INFO << " ######### point3d: "  << points_3d << std::endl;
+                 std::shared_ptr<Mappoint3d> new_mappoint = std::shared_ptr<Mappoint3d>(new Mappoint3d(sp_current_frame_->timestamp_, points_3d));
+                 new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_left_feature_[i]);
+                 new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_right_feature_[i]);
+                 sp_current_frame_->vsp_left_feature_[i]->wp_mappiont3d_.lock() = new_mappoint;
+                 sp_current_frame_->vsp_right_feature_[i]->wp_mappiont3d_.lock() = new_mappoint;
+                 
+                 wp_map_.lock()->vsp_mappoint_.emplace_back(new_mappoint);
+                if(wp_viewer_.lock())
+                {
+                        wp_viewer_.lock()->vsp_mappoint_.push_back(new_mappoint);
+                }
+        }
+        DLOG_INFO << "************************************************* init map : total map point : " << counter << std::endl;
+        return counter;
 }
 
 

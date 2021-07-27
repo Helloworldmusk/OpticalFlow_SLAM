@@ -8,6 +8,11 @@
 #include <fstream>
 #include <vector>
 #include <memory>
+#include <thread>
+#include <mutex>
+#include <chrono>
+#include <atomic>
+#include <condition_variable>
 //third lib
 #include <opencv2/core/core.hpp>
 #include <opencv2/core.hpp>
@@ -15,11 +20,14 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/opencv.hpp>
+#include <Eigen/Dense>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <Eigen/SVD> 
+#include <Eigen/Dense>
 #include <sophus/se3.hpp>
 #include <sophus/so3.hpp>
-#include<glog/logging.h>
+#include <glog/logging.h>
 #include <gflags/gflags.h>
 //project lib
 
@@ -33,6 +41,8 @@ typedef double double_t;
 
 //typedefs for eigen
 //Mat
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> MatXX;
+
 typedef Eigen::Matrix<double_t, 3, 3> Mat33;
 typedef Eigen::Matrix<double_t, 3, 4> Mat34;
 typedef Eigen::Matrix<double_t, 4, 4> Mat44;
