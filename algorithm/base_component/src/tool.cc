@@ -47,6 +47,7 @@ Vec3 CoordinateTransformImageToCamera(const Vec2& image_coordinate_position, con
         point3d.x() = (image_coordinate_position.x() - camera_intrinsics(0,2)) * depth / camera_intrinsics(0,0);
         point3d.y() = (image_coordinate_position.y() - camera_intrinsics(1,2)) * depth / camera_intrinsics(1,1); 
         point3d.z() = depth;
+        return point3d;
 }
 
 

@@ -426,16 +426,17 @@ int64_t Tracker::track_feature_in_right_image()
         for(auto& feature: sp_current_frame_->vsp_left_feature_)
         {
                 // std::shared_ptr<Feature2d> new_feature = nullptr;
+                v_left_keypoints.emplace_back(feature->position2d_.x(), feature->position2d_.y() );
                 auto mappoint =  feature->wp_mappiont3d_.lock();
                 if(mappoint)
                 {
                         Vec2 project_position = CoordinateTransformWorldToImage(mappoint, sp_current_frame_->get_right_pose(),  sp_camera_config_->K_left);
-                        v_left_keypoints.emplace_back(project_position(0),project_position(1));
+                        v_right_keypoints.emplace_back(project_position(0),project_position(1));
                 }
                 else
                 {
                         //for : first frame, no mappoint;
-                        v_left_keypoints.emplace_back(feature->position2d_.x(), feature->position2d_.y() );
+                        v_right_keypoints.emplace_back(feature->position2d_.x(), feature->position2d_.y() );
                 }                
         }
         //optical flow track;

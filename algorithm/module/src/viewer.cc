@@ -124,10 +124,7 @@ bool Viewer::draw_frame(const SE3 pose, const float color[3])
         Sophus::Matrix4f m = Twc.matrix().template cast<float>();
         glMultMatrixf((GLfloat*)m.data());
 
-        if (color == nullptr) {
-            glColor3f(1, 0, 0);
-        } else
-        glColor3f(color[0], color[1], color[2]);
+        glColor3f(0.5, 0.5, 0);
 
         glLineWidth(line_width);
         glBegin(GL_LINES);
@@ -143,6 +140,11 @@ bool Viewer::draw_frame(const SE3 pose, const float color[3])
 
         glVertex3f(0, 0, 0);
         glVertex3f(depth * (width - 1 - cx) / fx, depth * (0 - cy) / fy, depth);
+
+        if (color == nullptr) {
+            glColor3f(1, 0, 0);
+        } else
+        glColor3f(color[0], color[1], color[2]);
 
         glVertex3f(depth * (width - 1 - cx) / fx, depth * (0 - cy) / fy, depth);
         glVertex3f(depth * (width - 1 - cx) / fx, depth * (height - 1 - cy) / fy, depth);
