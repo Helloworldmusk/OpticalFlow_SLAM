@@ -29,4 +29,34 @@ Frame::~Frame()
 }
 
 
+SE3 Frame::get_left_pose()
+{
+    //TODO(snowden) : may not need to lock;
+    std::unique_lock<std::mutex> left_pose_lock(left_pose_mutex_);
+    return left_pose_;
+}
+
+
+void Frame::set_left_pose(SE3 new_pose)
+{
+    std::unique_lock<std::mutex> left_pose_lock(left_pose_mutex_);
+    left_pose_ = new_pose;
+    return ;
+}
+
+
+SE3 Frame::get_right_pose()
+{
+    std::unique_lock<std::mutex> right_pose_lock(right_pose_mutex_);
+    return right_pose_;
+}
+
+
+void Frame::set_right_pose(SE3 new_pose)
+{
+    std::unique_lock<std::mutex> right_pose_lock(right_pose_mutex_);
+    right_pose_ = new_pose;
+    return ;
+}
+
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam

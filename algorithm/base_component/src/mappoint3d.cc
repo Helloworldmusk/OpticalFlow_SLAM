@@ -41,4 +41,29 @@ Mappoint3d::~Mappoint3d()
 }
 
 
+/**
+ * @brief 
+ * @author snowden
+ * @date 2021-07-28
+ * @version 1.0
+ */
+void Mappoint3d::set_position3d(const Vec3& position3d)
+{
+        std::unique_lock<std::mutex> position3d_lock { position3d_mutex };
+        position3d_ = position3d;
+}
+
+
+/**
+ * @brief 
+ * @author snowden
+ * @date 2021-07-28
+ * @version 1.0
+ */
+Vec3 Mappoint3d::get_position3d()
+{
+        std::unique_lock<std::mutex> position3d_lock { position3d_mutex };
+        return position3d_;
+}
+
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam

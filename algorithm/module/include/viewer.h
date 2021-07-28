@@ -37,7 +37,7 @@ class Viewer {
         std::weak_ptr<Optimizer> wp_optimizer_;
         std::shared_ptr<Tracker> sp_tracker_;
         std::weak_ptr<Frame> wp_current_frame_; 
-        std::vector<std::shared_ptr<Mappoint3d>> vsp_mappoint_;
+        std::vector<std::shared_ptr<Mappoint3d>> vsp_mappoints_;
         std::thread viewer_thread_;
         std::atomic<bool> is_running_;
         const float kBlueColor_[3] {0,0,1};

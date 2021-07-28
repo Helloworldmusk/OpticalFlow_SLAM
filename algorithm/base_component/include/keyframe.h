@@ -25,7 +25,7 @@ class KeyFrame : public Frame {
         void set_is_actived(bool value) { is_actived_ = value; }
         
         std::shared_ptr<Frame> sp_frame_ { nullptr };
-        bool is_actived_ { true };
+        std::atomic<bool> is_actived_ { true };
     protected:
 
     private:

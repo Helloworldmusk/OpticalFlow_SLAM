@@ -407,7 +407,7 @@ int64_t Tracker::detect_left_image_features()
         for(auto& keypoint : keypoints)
         {
                std::shared_ptr<Feature2d> feature_point = std::shared_ptr<Feature2d>(new Feature2d(keypoint));
-               feature_point->wp_frame_.lock() = sp_current_frame_;
+               feature_point->set_frame_linked(sp_current_frame_);
                sp_current_frame_->vsp_left_feature_.push_back(feature_point);
                cv::circle(sp_current_frame_->left_image_, keypoint.pt, 3, cv::Scalar(255,255,255));
         }
@@ -427,7 +427,7 @@ int64_t Tracker::track_feature_in_right_image()
         {
                 // std::shared_ptr<Feature2d> new_feature = nullptr;
                 v_left_keypoints.emplace_back(feature->position2d_.x(), feature->position2d_.y() );
-                auto mappoint =  feature->wp_mappiont3d_.lock();
+                auto mappoint =  feature->get_mappoint3d_linked();
                 if(mappoint)
                 {
                         Vec2 project_position = CoordinateTransformWorldToImage(mappoint, sp_current_frame_->get_right_pose(),  sp_camera_config_->K_left);
@@ -451,7 +451,7 @@ int64_t Tracker::track_feature_in_right_image()
                 {
                         std::shared_ptr<Feature2d> feature 
                                 = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_right_keypoints[i].x, v_right_keypoints[i].y)));
-                        feature->wp_frame_.lock() = sp_current_frame_;
+                        feature->set_frame_linked(sp_current_frame_);
                         sp_current_frame_->vsp_right_feature_.push_back(feature);
                         good_point_counter++;
                 }
@@ -486,7 +486,7 @@ int64_t Tracker::init_map()
         int64_t counter = 0;
          if(wp_viewer_.lock())
          {
-                 wp_viewer_.lock()->vsp_mappoint_.clear();
+                 wp_viewer_.lock()->vsp_mappoints_.clear();
          }
         for (int i = 0; i < sp_current_frame_->vsp_left_feature_.size(); i++)
         {
@@ -505,15 +505,18 @@ int64_t Tracker::init_map()
                  std::shared_ptr<Mappoint3d> new_mappoint = std::shared_ptr<Mappoint3d>(new Mappoint3d(sp_current_frame_->timestamp_, points_3d));
                  new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_left_feature_[i]);
                  new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_right_feature_[i]);
-                 sp_current_frame_->vsp_left_feature_[i]->wp_mappiont3d_.lock() = new_mappoint;
-                 sp_current_frame_->vsp_right_feature_[i]->wp_mappiont3d_.lock() = new_mappoint;
-                 
-                 wp_map_.lock()->vsp_mappoint_.emplace_back(new_mappoint);
+                 sp_current_frame_->vsp_left_feature_[i]->set_mappoint3d_linked(new_mappoint);
+                 sp_current_frame_->vsp_right_feature_[i]->set_mappoint3d_linked(new_mappoint);
+                 wp_map_.lock()->add_mappoint(new_mappoint);
+                 sp_current_frame_->linked_mappoint3d_nums++;
                 if(wp_viewer_.lock())
                 {
-                        wp_viewer_.lock()->vsp_mappoint_.push_back(new_mappoint);
+                        wp_viewer_.lock()->vsp_mappoints_.push_back(new_mappoint);
                 }
         }
+        wp_map_.lock()->add_frame(sp_current_frame_);
+        std::shared_ptr<KeyFrame> keyframe = std::shared_ptr<KeyFrame>(new KeyFrame(sp_current_frame_));
+        wp_map_.lock()->add_keyframe(keyframe);
         DLOG_INFO << "************************************************* init map : total map point : " << counter << std::endl;
         return counter;
 }

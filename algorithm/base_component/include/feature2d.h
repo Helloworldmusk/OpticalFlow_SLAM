@@ -28,15 +28,24 @@ class Feature2d {
         ~Feature2d();
         int64_t get_new_id() { static_next_2d_id_++;  return static_next_2d_id_; }
 
+        void set_mappoint3d_linked(std::shared_ptr<Mappoint3d> mappoint3d);
+        std::shared_ptr<Mappoint3d> get_mappoint3d_linked();
+        void set_frame_linked(std::shared_ptr<Frame> sp_frame);
+        std::shared_ptr<Frame> get_frame_linked();
+
         int64_t id_ = { -1 };
         bool is_outline_ { false };
         Vec2 position2d_ = Vec2::Zero();
         cv::KeyPoint cv_keypoint_;
-        std::weak_ptr<Mappoint3d> wp_mappiont3d_;
-        std::weak_ptr<Frame> wp_frame_;
+        
+
 
     protected:
     private:
+        std::mutex linked_mappoint3d_mutex_;
+        std::mutex linked_frame_mutex_;
+        std::shared_ptr<Mappoint3d> sp_mappiont3d_;
+        std::weak_ptr<Frame> wp_frame_;
 }; //class Feature2d
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam

@@ -12,7 +12,7 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 Vec2 CoordinateTransformWorldToImage(const std::shared_ptr<Mappoint3d>& mappoint3d, const SE3& current_pose, 
                                                                        const Mat33& camera_intrinsics)
 {
-        Vec3 position = CoordinateTransformWorldToCamera(mappoint3d->position3d_, current_pose);
+        Vec3 position = CoordinateTransformWorldToCamera(mappoint3d->get_position3d(), current_pose);
         Vec2 position_2d ;
         position_2d(0) = camera_intrinsics(0,0) * position(0) / position(2) + camera_intrinsics(0,2);
         position_2d(1) = camera_intrinsics(1,1) * position(1) / position(2) + camera_intrinsics(1,2);

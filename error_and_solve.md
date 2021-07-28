@@ -233,4 +233,4 @@ Thread 2 "run_vo" received signal SIGSEGV, Segmentation fault.
 
 初步的解决办法，给current_frame加锁；外边包装一个函数，并且把current_frame 当做一个私有变量；
 
-过程：给制定元素加锁，也依然出现了这个问题，后来把出错地方的weak_ptr转换为 share_ptr 后，就可以了，原因未知；（可能是weak_ptr没有占用权，所以有可能 weak_ptr访问 目标的时候，目标已经释放了？）
+解决办法：给制定元素加锁，也依然出现了这个问题，后来把出错地方的weak_ptr转换为 share_ptr 后，就可以了，原因未知；（可能是weak_ptr没有占用权，所以有可能 weak_ptr访问 目标的时候，目标已经释放了？）

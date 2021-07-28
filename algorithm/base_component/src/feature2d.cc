@@ -49,5 +49,50 @@ Feature2d:: ~Feature2d()
 }
 
 
+/**
+ *  @brief 
+ *  @author snowden
+ *  @date 2021-07-28 
+ *  @version 1.0
+ */
+void Feature2d::set_mappoint3d_linked(std::shared_ptr<Mappoint3d> mappoint3d)
+{
+        std::unique_lock<std::mutex> linked_mappoint3d_lock { linked_mappoint3d_mutex_ };
+        sp_mappiont3d_ = mappoint3d;
+}
+/**
+ *  @brief 
+ *  @author snowden
+ *  @date 2021-07-28 
+ *  @version 1.0
+ */
+std::shared_ptr<Mappoint3d> Feature2d::get_mappoint3d_linked()
+{
+        std::unique_lock<std::mutex> linked_mappoint3d_lock { linked_mappoint3d_mutex_ };
+        return sp_mappiont3d_;
+}
+/**
+ *  @brief 
+ *  @author snowden
+ *  @date 2021-07-28 
+ *  @version 1.0
+ */
+void Feature2d::set_frame_linked(std::shared_ptr<Frame> sp_frame)
+{
+        std::unique_lock<std::mutex> linked_frame_lock_ { linked_frame_mutex_ };
+        wp_frame_.lock() = sp_frame;
+}
+/**
+ *  @brief 
+ *  @author snowden
+ *  @date 2021-07-28 
+ *  @version 1.0
+ */
+std::shared_ptr<Frame> Feature2d::get_frame_linked()
+{
+        std::unique_lock<std::mutex> linked_frame_lock_ { linked_frame_mutex_ };
+        return wp_frame_.lock();
+}
+
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam

@@ -174,10 +174,10 @@ bool Viewer::draw_mappoints(const float color[3])
 {
         glPointSize(5);
         glBegin(GL_POINTS);
-        DLOG_INFO << "############ viewer : vsp mappoint size : " << vsp_mappoint_.size() << std::endl;
-        for (auto& mappoint : vsp_mappoint_) 
+        DLOG_INFO << "############ viewer : vsp mappoint size : " << vsp_mappoints_.size() << std::endl;
+        for (auto& mappoint : vsp_mappoints_) 
         {
-                auto pos = mappoint->position3d_;
+                auto pos = mappoint->get_position3d();
                 glColor3f(color[0], color[1], color[2]);
                 glVertex3d(pos[0], pos[1], pos[2]);
         }
