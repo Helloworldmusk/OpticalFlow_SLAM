@@ -19,7 +19,7 @@ class Frame {
 
         static int64_t static_new_id;
 
-        Frame() {};
+        Frame() {  };
         Frame(const int64_t timestamp, const  cv::Mat left_image, const cv::Mat right_image);
         ~Frame();
         static int64_t get_new_id() { static_new_id++ ; return static_new_id; }

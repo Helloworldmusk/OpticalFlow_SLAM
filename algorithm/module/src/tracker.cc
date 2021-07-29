@@ -132,7 +132,7 @@ void Tracker::front_end_loop()
 {
         while(is_running_)
         {
-                DLOG_INFO << " front_end loop is running " << std::endl;
+                // DLOG_INFO << " front_end loop is running " << std::endl;
                 switch (get_front_end_status() )
                 {
                         case FrontEndStatus::READY:
@@ -232,6 +232,8 @@ bool Tracker::init_front_end()
 {
         //TODO(snowden): init;
         sp_current_frame_ = get_a_frame();
+        CHECK_NOTNULL(sp_current_frame_);
+        sp_last_frame_ = sp_current_frame_;
         sp_current_frame_->set_left_pose(SE3(SO3(), Vec3(0,0,0)));
         sp_current_frame_->set_right_pose(SE3(SO3(),sp_camera_config_->base_line));
         if( nullptr ==  sp_current_frame_) { return false; }
@@ -252,26 +254,57 @@ bool Tracker::init_front_end()
  */
 Tracker::FrontEndStatus Tracker::tracking()
 {
-        SHOW_FUNCTION_INFO
-        static int counter = 0;
-        counter++;
-        //TODO(snowden) : tracking;
-        if(counter < 10)
+        // estimate current coarse  pose;
+        sp_last_frame_ = sp_current_frame_;
+        sp_current_frame_ = get_a_frame();
+        if(nullptr ==  sp_current_frame_)
         {
-                return FrontEndStatus::TRACKING;
-        }
-        else if (counter < 11)
-        {
-                return FrontEndStatus::NEED_INSERT_KEYFRAM;
-        }
-        else if (counter < 12)
-        {
-                return FrontEndStatus::LOST;
-        }
-        else if(counter < 13)
-        {
+                DLOG_WARNING << " tracking finished " << std::endl;
                 return FrontEndStatus::FINISHED;
         }
+        sp_current_frame_->set_left_pose(relative_motion_ * sp_last_frame_->get_left_pose());
+        // track point in current frame'left image;
+        int64_t tracked_num = track_feature_in_current_image();
+        if(tracked_num < sp_slam_config_->features_tracking_min_threshold)
+        {
+                DLOG_ERROR<< "Frame:  " << sp_current_frame_->id_ <<  "  timestamp : " << sp_current_frame_->timestamp_ 
+                                            << " traced feature is less than threshold : " << sp_slam_config_->features_tracking_min_threshold << std::endl;
+                return FrontEndStatus::LOST;
+        }
+        else
+        {
+                DLOG_INFO << "Frame:  " << sp_current_frame_->id_ <<  "  timestamp : " << sp_current_frame_->timestamp_ 
+                                         << "  Tracked " << tracked_num << " features,   status is good " << std::endl;
+                                         
+        }
+        // estimate current fine pose;
+
+        // check if tracked point number great than threshold, otherwise need insert keyframe;
+
+        // update relative_motion_
+
+        // viewer show;
+
+        // SHOW_FUNCTION_INFO
+        // static int counter = 0;
+        // counter++;
+        // //TODO(snowden) : tracking;
+        // if(counter < 10)
+        // {
+                return FrontEndStatus::TRACKING;
+        // }
+        // else if (counter < 11)
+        // {
+        //         return FrontEndStatus::NEED_INSERT_KEYFRAM;
+        // }
+        // else if (counter < 12)
+        // {
+        //         return FrontEndStatus::LOST;
+        // }
+        // else if(counter < 13)
+        // {
+        //         return FrontEndStatus::FINISHED;
+        // }
 
 }
 
@@ -351,16 +384,22 @@ std::shared_ptr<Frame> Tracker::get_a_frame()
         cv::Mat left_image;
         cv::Mat right_image;
         std::stringstream temp;
-        temp << std::setw(6) << std::setfill('0') << Frame::get_new_id();
+        int64_t frame_id = Frame::get_new_id();
+        temp << std::setw(6) << std::setfill('0') << frame_id;
         std::string left_image_path = dataset_path_ + "/image_0/" +temp.str() + ".png" ;
         left_image = cv::imread(left_image_path.c_str(),cv::IMREAD_GRAYSCALE);
         std::string right_image_path = dataset_path_ + "/image_1/" +temp.str() + ".png" ;
         right_image = cv::imread(right_image_path.c_str(),cv::IMREAD_GRAYSCALE);
-        CHECK_EQ(left_image.data == nullptr, false);
-        CHECK_EQ(right_image.data == nullptr, false);
+        if(left_image.data == nullptr || right_image.data == nullptr)
+        {
+                return nullptr;
+        }
+        // CHECK_EQ(left_image.data == nullptr, false);
+        // CHECK_EQ(right_image.data == nullptr, false);
 
         sp_frame->left_image_ = left_image;
         sp_frame->right_image_ = right_image;
+        sp_frame->id_ = frame_id;
 
         static std::ifstream fin(dataset_path_+"/times.txt");
         if(!fin)
@@ -390,7 +429,7 @@ int64_t Tracker::detect_left_image_features()
         cv::Mat mask(sp_current_frame_->left_image_.size(), CV_8UC1, cv::Scalar(0));
         
         std::vector<cv::KeyPoint> keypoints;
-        if(sp_last_frame_)
+        if(sp_last_frame_->vsp_left_feature_.size())
         {
                 for(auto& feature:  sp_last_frame_->vsp_left_feature_)
                 {
@@ -411,6 +450,7 @@ int64_t Tracker::detect_left_image_features()
                sp_current_frame_->vsp_left_feature_.push_back(feature_point);
                cv::circle(sp_current_frame_->left_image_, keypoint.pt, 3, cv::Scalar(255,255,255));
         }
+        // DLOG_INFO << " keypoints size() : " << keypoints.size() << std::endl;
         // cv::imshow("frame", sp_current_frame_->left_image_);
         // cv::waitKey(1000);
         return keypoints.size();
@@ -422,6 +462,12 @@ int64_t Tracker::track_feature_in_right_image()
 {
         std::vector<cv::Point2f> v_left_keypoints;
         std::vector<cv::Point2f> v_right_keypoints;
+
+        if (sp_current_frame_->vsp_left_feature_.size() < sp_slam_config_->features_init_min_threshold)
+        {
+                DLOG_INFO <<  " sp_current_frame_  left keypoint is little, can't init normal " << std::endl;
+                return 0;
+        }
         // give a init position;
         for(auto& feature: sp_current_frame_->vsp_left_feature_)
         {
@@ -522,5 +568,65 @@ int64_t Tracker::init_map()
 }
 
 
+/**
+ * @brief  
+ * @author snowden
+ * @date 2021-07-29
+ ** @return the number of feature2d successfully tracked from last frame's left;;
+ * @version 1.0
+ */
+int64_t Tracker::track_feature_in_current_image()
+{
+        std::vector<cv::Point2f> v_last_keypoints;
+        std::vector<cv::Point2f> v_current_keypoints;
+        if (sp_last_frame_->vsp_left_feature_.size() < sp_slam_config_->features_tracking_min_threshold)
+        {
+                DLOG_INFO <<  " last frame keypoint is little, can't track normal " << std::endl;
+                return 0;
+        }
+        for (auto& feature: sp_last_frame_->vsp_left_feature_)
+        {
+                // std::shared_ptr<Feature2d> new_feature = nullptr;
+                v_last_keypoints.emplace_back(feature->position2d_.x(), feature->position2d_.y() );
+                auto mappoint =  feature->get_mappoint3d_linked();
+                if(mappoint)
+                {
+                        Vec2 project_position = CoordinateTransformWorldToImage(mappoint, sp_current_frame_->get_left_pose(),  
+                                                                                                                                                      sp_camera_config_->K_left);
+                        v_current_keypoints.emplace_back(project_position(0),project_position(1));
+                }
+                else
+                {
+                        v_current_keypoints.emplace_back(feature->position2d_.x(), feature->position2d_.y() );
+                }                
+        }
+        //optical flow track;
+        std::vector<uchar> status;
+        cv::Mat error;
+        int64_t good_point_counter = 0;
+        DLOG_INFO << " first keypoints size  " << v_last_keypoints.size() << "  last keypoints size " << v_current_keypoints.size() << std::endl;
+        cv::calcOpticalFlowPyrLK(sp_last_frame_->left_image_, sp_current_frame_->left_image_, 
+                                                              v_last_keypoints, v_current_keypoints, status, error); 
+        for (size_t i = 0; i < status.size(); i++)
+        {
+                if (status[i])
+                {
+                        std::shared_ptr<Feature2d> feature 
+                                = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_current_keypoints[i].x, v_current_keypoints[i].y)));
+                        feature->set_frame_linked(sp_current_frame_);
+                        feature->set_mappoint3d_linked(sp_last_frame_->vsp_left_feature_[i]->get_mappoint3d_linked());
+                        sp_current_frame_->vsp_left_feature_.push_back(feature);
+                        good_point_counter++;
+                }
+        }
+        return good_point_counter;
+}
+
+
+
+int64_t Tracker::estimate_current_pose()
+{
+
+}
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam

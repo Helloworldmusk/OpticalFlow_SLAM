@@ -99,6 +99,8 @@ class Tracker {
         int64_t detect_left_image_features();
         int64_t track_feature_in_right_image();
         int64_t init_map();
+        int64_t track_feature_in_current_image();
+        int64_t estimate_current_pose();
 
         //data
 

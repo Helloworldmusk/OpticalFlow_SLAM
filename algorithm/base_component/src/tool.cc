@@ -86,7 +86,7 @@ bool TriangulateNormalizedPoint(const Vec3& point1, const Vec3& point2, const SE
          position3d = (svd.matrixV().col(3) / svd.matrixV()(3,3)).head<3>();
          if(svd.singularValues()[3] / svd.singularValues()[2] > 1e-2)
          {
-                 DLOG_INFO << " result is not good  " << std::endl;
+                 DLOG_INFO << "TriangulateNormalizedPoint:  result is not good  " << std::endl;
                 return false;
          }
          return true;

@@ -21,8 +21,8 @@ class KeyFrame : public Frame {
         KeyFrame(std::shared_ptr<Frame> sp_frame);
         ~KeyFrame();
         
-        bool get_is_actived()  { return is_actived_; }
-        void set_is_actived(bool value) { is_actived_ = value; }
+        bool get_is_actived()  { return is_actived_.load(); }
+        void set_is_actived(bool value) { is_actived_.store(value) ; }
         
         std::shared_ptr<Frame> sp_frame_ { nullptr };
         std::atomic<bool> is_actived_ { true };

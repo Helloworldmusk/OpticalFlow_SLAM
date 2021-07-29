@@ -118,7 +118,7 @@ bool Viewer::draw_frame(const SE3 pose, const float color[3])
 {
  
         SE3 Twc = pose.inverse();
-        DLOG_INFO << " draw frame *********************** " << std::endl;
+        // DLOG_INFO << " draw frame *********************** " << std::endl;
         glPushMatrix();
 
         Sophus::Matrix4f m = Twc.matrix().template cast<float>();
@@ -174,7 +174,7 @@ bool Viewer::draw_mappoints(const float color[3])
 {
         glPointSize(5);
         glBegin(GL_POINTS);
-        DLOG_INFO << "############ viewer : vsp mappoint size : " << vsp_mappoints_.size() << std::endl;
+        // DLOG_INFO << "############ viewer : vsp mappoint size : " << vsp_mappoints_.size() << std::endl;
         for (auto& mappoint : vsp_mappoints_) 
         {
                 auto pos = mappoint->get_position3d();

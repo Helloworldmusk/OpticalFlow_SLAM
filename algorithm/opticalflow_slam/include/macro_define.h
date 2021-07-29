@@ -34,7 +34,7 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 #include<glog/logging.h>
 #define DLOG_INFO (DLOG(INFO)<< BOLDCYAN<< " D->INFO: "<<RESET_COLOR)
 #define DLOG_WARNING (DLOG(WARNING)<< BOLDYELLOW<< " D->WARNING: "<<RESET_COLOR)
-#define DLOG_ERROR (DLOG(ERROR)<< BOLDRED<< " D->ERROR"<<RESET_COLOR) 
+#define DLOG_ERROR (DLOG(ERROR)<< BOLDRED<< " D->ERROR: "<<RESET_COLOR) 
 #define DLOG_FATAL (DLOG(FATAL)<< BOLDMAGENTA<< " D->FATAL"<<RESET_COLOR) 
 
 #define LOG_INFO (LOG(INFO)<< BOLDCYAN<< " INFO: "<<RESET_COLOR)

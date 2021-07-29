@@ -9,7 +9,6 @@ make -j8
 echo " please enture make result ***************************end******************************"
 sleep 2
 echo " run_shell: ready run run_vo "
-sleep 
 cd ../bin
 
 ./run_vo 

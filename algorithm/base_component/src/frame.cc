@@ -13,7 +13,7 @@ int64_t Frame::static_new_id = -1;
 Frame::Frame(const int64_t timestamp, const  cv::Mat left_image, const cv::Mat right_image) :
         timestamp_(timestamp), left_image_(left_image), right_image_(right_image)
 {
-        id_ = get_new_id();
+        // id_ = get_new_id();
 }
 
 

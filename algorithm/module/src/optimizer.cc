@@ -119,7 +119,7 @@ void Optimizer::back_end_loop()
 {
         while (is_running_.load())
         {
-                DLOG_INFO << " back_end_loop is running " << std::endl;
+                // DLOG_INFO << " back_end_loop is running " << std::endl;
                 switch (get_back_end_status())
                 {
                         case BackEndStatus::READY:
@@ -162,6 +162,7 @@ void Optimizer::back_end_loop()
                                 DLOG_INFO << " BackEndStatus::FINISHED " << std::endl;
                                 notify_all_updated_map();
                                 set_back_end_status(BackEndStatus::IDLE);
+                                is_running_.store(false);
                                 break;
                         }
                         case BackEndStatus::RESET:
@@ -232,7 +233,7 @@ bool Optimizer::wait_update_map_notify()
 void Optimizer::notify_all_updated_map()
 {
         wp_map_.lock()->condition_var_is_map_updated_.notify_all();
-        DLOG_INFO << " optimizer void Optimizer::notify_all_updated_map() " << std::endl;
+        DLOG_INFO << " optimizer notify_all_updated_map() " << std::endl;
 }
 
 
