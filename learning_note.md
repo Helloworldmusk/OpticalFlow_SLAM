@@ -1061,3 +1061,70 @@ https://blog.csdn.net/weixin_43991178/article/details/105142470?spm=1001.2014.30
 
 https://blog.csdn.net/weixin_43991178/article/details/105174734?spm=1001.2014.3001.5501
 
+
+
+**G2O**
+
+![img](typora_image/20180212222953144)
+
+文件结构：
+
+![img](https://app.yinxiang.com/shard/s45/res/9e45a2f1-752f-45dc-a779-4147fa4e8fc0/606958-20160321232831870-761923581.png?search=g2o)
+
+- apps　　　　一些应用程序。好用的g2o_viewer就在这里。其他还有一些不常用的命令行工具等。
+- core　　　　核心组件，很重要！基本的顶点、边、图结构的定义，算法的定义，求解器接口的定义在这里。
+- examples　　一些例程，可以参照着这里的东西来写。不过注释不太多。
+- solvers　　　　求解器的实现。主要来自choldmod, csparse。在使用g2o时要先选择其中一种。
+- stuff　　　　  对用户来讲可有可无的一些工具函数。
+- types　　　　各种顶点和边，很重要！我们用户在构建图优化问题时，先要想好自己的顶点和边是否已经提供了定义。如果没有，要自己实现。如果有，就用g2o提供的即可。
+
+
+
+问： 边到底是观测方程还是参差？
+
+​	边有值吗？
+
+很多鲁棒核函数都是分段函数，在输入较大时给出线性的增长速率，例如cauchy核，huber核等等
+
+所谓块求解器，就是利用A矩阵的稀疏性，每个优化变量和误差项都体现为固定大小的矩阵块，可以利用它的一些性质加速计算。
+
+SLAM中有一个加速增量方程求解的方法，称为边缘化。边缘化是说，如果我们把待优化的相机位姿放在H矩阵的左上角，把待优化的路标点放在H矩阵的右下角，再把H矩阵分为四块，就可以对H的矩阵块进行高斯消元，使得对相机位姿的求解不依赖于路标点。这种方法奏效的原因是因为相机矩阵相比于路标点稀疏得多，因此相机矩阵块求逆更容易。（注意，这里提到的边缘化只用于加速增量方程求解，不同于滑动窗口中的边缘化。）
+
+参考： https://www.jianshu.com/p/36f2eac54d2c
+
+SparseBlockMatrix<T> 用来存放H矩阵的数据
+
+LinearSolver  用来指定具体的线性求解器。
+
+　　最后总结一下做图优化的流程。
+
+1. 选择你想要的图里的节点与边的类型，确定它们的参数化形式；
+2. 往图里加入实际的节点和边；
+3. 选择初值，开始迭代；
+4. 每一步迭代中，计算对应于当前估计值的雅可比矩阵和海塞矩阵；
+5. 求解稀疏线性方程HkΔx=−bkHkΔx=−bk，得到梯度方向；
+6. 继续用GN或LM进行迭代。如果迭代结束，返回优化值。
+
+　　实际上，g2o能帮你做好第3-6步，你要做的只是前两步而已。下节我们就来尝试这件事。
+
+
+
+自定义定点和边：
+
+不管怎样，都要重写下述的函数。
+
+自定义顶点
+virtual bool read(std::istream& is);
+virtual bool write(std::ostream& os) const;
+virtual void oplusImpl(const number_t* update);
+virtual void setToOriginImpl();
+其中read，write函数可以不进行覆写，仅仅声明一下就可以，setToOriginImpl设定被优化变量的原始值，oplusImpl比较重要，我们根据增量方程计算出增量之后，就是通过这个函数对估计值进行调整的
+
+自定义边
+virtual bool read(std::istream& is);
+virtual bool write(std::ostream& os) const;
+virtual void computeError();
+virtual void linearizeOplus();
+read和write函数同上，computeError函数是**使用当前顶点的值计算的测量值与真实的测量值之间的误差**，linearizeOplus函数是**在当前顶点的值下，该误差对优化变量的偏导数，即jacobian。**
+
+优质参考： https://blog.csdn.net/wubaobao1993/article/details/79319215

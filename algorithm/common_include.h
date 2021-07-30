@@ -52,6 +52,7 @@ typedef Eigen::Matrix<float_t, 3, 4> Mat34f;
 typedef Eigen::Matrix<float_t, 4, 4> Mat44f;
 
 //vector
+typedef Eigen::Matrix<double_t, 6, 1> Vec6;
 typedef Eigen::Matrix<double_t, 4, 1> Vec4;
 typedef Eigen::Matrix<double_t, 3, 1> Vec3;
 typedef Eigen::Matrix<double_t, 2, 1> Vec2;

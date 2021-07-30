@@ -3,9 +3,17 @@ set(CMAKE_CURRENT_BINARY_DIR ${PROJECT_SOURCE_DIR})
 # Eigen
 include_directories("/usr/include/eigen3")
 
+#Suitesparse
+include_directories("/usr/include/suitesparse")
+
 # Sophus
 find_package(Sophus REQUIRED)
 include_directories(${Sophus_INCLUDE_DIRS})
+
+# G2O
+list( APPEND CMAKE_MODULE_PATH /home/snowden/workplace/slam/slamcode/slambook2/3rdparty/g2o/cmake_modules/ ) 
+find_package(G2O REQUIRED)
+include_directories(${G2O_INCLUDE_DIRS})
 
 # pangolin
 # include_directories("/usr/local/include/pangolin")
@@ -33,6 +41,7 @@ set(THIRD_PARTY_LIBS
         # GLEW 
         glog
         gflags
+        g2o_core g2o_stuff g2o_types_sba g2o_solver_csparse g2o_csparse_extension
         )
  message(" algorithm current source dir : ${PROJECT_SOURCE_DIR}" )
 

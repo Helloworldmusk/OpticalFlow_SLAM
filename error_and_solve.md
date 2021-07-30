@@ -234,3 +234,54 @@ Thread 2 "run_vo" received signal SIGSEGV, Segmentation fault.
 初步的解决办法，给current_frame加锁；外边包装一个函数，并且把current_frame 当做一个私有变量；
 
 解决办法：给制定元素加锁，也依然出现了这个问题，后来把出错地方的weak_ptr转换为 share_ptr 后，就可以了，原因未知；（可能是weak_ptr没有占用权，所以有可能 weak_ptr访问 目标的时候，目标已经释放了？）
+
+
+
+
+
+### G2O 编译错误：
+
+![image-20210730140315304](typora_image/image-20210730140315304.png)
+
+原因： 找不到g2o的配置文件；
+
+需要使用list() 指定 G2O cmake 所在的文件位置；
+
+```
+list( APPEND CMAKE_MODULE_PATH /home/×××/g2o/cmake_modules ) 
+set(G2O_ROOT /usr/local/include/g2o) 
+find_package(G2O REQUIRED) 
+include_directories( 
+${G2O_INCLUDE_DIRS} ) 
+```
+
+
+
+
+
+### G2O使用错误：
+
+![image-20210730162802148](typora_image/image-20210730162802148.png)
+
+原因： 没有设定 cs.h 的具体位置，在CmakeLists 中添加即可；
+
+```
+#Suitesparse
+include_directories("/usr/include/suitesparse")
+```
+
+
+
+### G2O 使用错误；
+
+base_unary_edge.hpp:45:10: error: **invalid new-expression of abstract class type** ‘OpticalFlow_SLAM_algorithm_opticalflow_slam::VertexPose’
+
+![image-20210730164032674](typora_image/image-20210730164032674.png)
+
+原因：有纯虚函数未实现；
+
+具体原因： 有个函数是 function () const ; 这种形式的，但是在重写的时候，写成了function(), 丢掉了const,造成了这个问题，所以， 含有const修饰的函数 和  不含 const的函数，是完全不同的两种函数；
+
+任何不会修改数据成员的函数都应该声明为const 类型。如果在编写const 成员函数时，不慎修改了数据成员，或者调用了其它非const 成员函数，编译器将指出错误，这无疑会提高程序的健壮性。
+
+参考： https://blog.csdn.net/eickandy/article/details/65630511
