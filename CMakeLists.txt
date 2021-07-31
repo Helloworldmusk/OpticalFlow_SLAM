@@ -6,6 +6,7 @@ set(CMAKE_CXX_FLAGS "-std=c++11 -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE  "-std=c++11 -O3 -fopenmp -pthread")
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 
+
 #include local .h files
 include_directories(${PROJECT_SOURCE_DIR})
 

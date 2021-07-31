@@ -35,6 +35,7 @@ class Feature2d {
 
         int64_t id_ = { -1 };
         bool is_outline_ { false };
+        //TODO(snowden) : position2d_ may be accessed by mutil thread(tracker and optimizer);
         Vec2 position2d_ = Vec2::Zero();
         cv::KeyPoint cv_keypoint_;
         

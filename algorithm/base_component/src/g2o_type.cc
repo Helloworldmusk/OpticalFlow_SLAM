@@ -36,7 +36,7 @@ void VertexPose::setToOriginImpl()
  */
 bool VertexPose::read(std::istream& is)
 {
-
+    return true;
 }
 
 
@@ -49,7 +49,7 @@ bool VertexPose::read(std::istream& is)
  */
 bool VertexPose::write(std::ostream& os) const 
 {
-
+    return true;
 }
 
 
@@ -112,7 +112,7 @@ void UnaryEdgePose::computeError()
  */
 bool UnaryEdgePose::read(std::istream& is)
 {
-
+    return true;
 }
 
 
@@ -124,7 +124,7 @@ bool UnaryEdgePose::read(std::istream& is)
  */
 bool UnaryEdgePose::write(std::ostream& os) const 
 {
-
+    return true;
 }
 
 

@@ -13,6 +13,7 @@
 #include "algorithm/base_component/include/system_config.h"
 #include "algorithm/base_component/include/camera_config.h"
 #include "algorithm/base_component/include/tool.h"
+#include "algorithm/base_component/include/g2o_type.h"
 #include "algorithm/module/include/map.h"
 #include "algorithm/module/include/optimizer.h"
 #include "algorithm/module/include/viewer.h"

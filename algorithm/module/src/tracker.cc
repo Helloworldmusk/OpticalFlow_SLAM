@@ -623,10 +623,99 @@ int64_t Tracker::track_feature_in_current_image()
 }
 
 
-
+/**
+ * @brief  
+ * @author snowden
+ * @date 2021-07-31
+ ** @return number of inlier point ;
+ * @version 1.0
+ */
 int64_t Tracker::estimate_current_pose()
 {
+        g2o::SparseOptimizer optimizer;
 
-}
+        //set Algorithm;
+        typedef g2o::BlockSolver_6_3  BlockSolverType;
+        typedef g2o::LinearSolverDense<BlockSolverType::PoseMatrixType> LinearSolverType;
+        auto solver = new   g2o::OptimizationAlgorithmLevenberg(
+                                                        g2o::make_unique<BlockSolverType>(
+                                                                g2o::make_unique<LinearSolverType>()
+                                                        )
+                                                );
+        optimizer.setAlgorithm(solver);
+
+        //set Vertex;
+        VertexPose * pose_vertex = new VertexPose();
+        pose_vertex->setId(0);
+        SE3 raw_pose =  sp_current_frame_->get_left_pose();
+        pose_vertex->setEstimate(raw_pose);
+        optimizer.addVertex(pose_vertex);
+
+        //set edge;
+        Mat33 K { sp_camera_config_->K_left };
+        int64_t index { pose_vertex->id() + 1 };
+        std::vector<std::shared_ptr<Feature2d>> vsp_feature2ds;
+        std::vector<UnaryEdgePose*> vp_egdes;
+        for (auto feature2d : sp_current_frame_->vsp_left_feature_)
+        {
+                if (feature2d->get_mappoint3d_linked())
+                {
+                        //save valid feature for mark is outlier 
+                        vsp_feature2ds.push_back(feature2d);
+                        UnaryEdgePose * new_edge = new UnaryEdgePose(feature2d->get_mappoint3d_linked()->get_position3d() , K);
+                        new_edge->setId(index);
+                        new_edge->setVertex(0,pose_vertex);
+                        new_edge->setMeasurement(feature2d->position2d_);
+                        new_edge->setInformation(Eigen::Matrix2d::Identity());
+                        new_edge->setRobustKernel(new g2o::RobustKernelHuber);
+                        optimizer.addEdge(new_edge);
+                        index++;
+                        //save the edge to decide if a feature is outlier after optimize;
+                        vp_egdes.push_back(new_edge);
+                }
+        }
+
+        //init optimizer and run optimizer x times;
+        optimizer.initializeOptimization();
+        optimizer.optimize(20);
+
+        //mark outliers , use Chi-Squared Test;
+        int64_t outlier_cnt { 0 };
+        const double_t chi2_threshold { 5.991 };
+        for (size_t i { 0 }; i < vp_egdes.size(); i++)
+        {
+                if (vsp_feature2ds[i]->is_outline_)
+                {
+                        vp_egdes[i]->computeError();
+                }
+                if(vp_egdes[i]->chi2() > chi2_threshold)
+                {
+                        vsp_feature2ds[i]->is_outline_ = true;
+                        vp_egdes[i]->setLevel(1);
+                        outlier_cnt++;
+                }
+                else
+                {
+                        vsp_feature2ds[i]->is_outline_ = false;
+                        vp_egdes[i]->setLevel(0);
+                }
+        }
+        DLOG_INFO << " outlier / feature size : " << outlier_cnt << " / " << vsp_feature2ds.size() << std::endl;
+        sp_current_frame_->set_left_pose(pose_vertex->estimate());
+        DLOG_INFO << " current pose : \n\r" << sp_current_frame_->get_left_pose().matrix() << std::endl;
+
+        for(auto &feature : vsp_feature2ds)
+        {
+                if(feature->is_outline_)
+                {
+                        feature->set_mappoint3d_linked(nullptr);
+                        //TODO(snowden) : is_outline_ set to false, maybe can be used by other frame in local optimizer; 
+                        //but you can try to delete it to make a comparrson; 
+                        feature->is_outline_ = false;
+                }
+        }
+
+        return vsp_feature2ds.size() - outlier_cnt;
+} //int64_t Tracker::estimate_current_pose()
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam

@@ -40,9 +40,12 @@ struct CameraConfig  {
          double_t p1_right { 0.0 };
          double_t p2_right { 0.0 };
 
+        //TODO(snowden) : K_left and K_right will be accessed by mutil thread, so need be set private and set lock;
         Mat33 K_left;
         Mat33 K_right;
-        //@warning: base_line may be negative number,  not absolute distance;
+        /**
+         * @warning: base_line may be negative number,  not absolute distance;
+         */ 
         Vec3 base_line;
         Mat44 T_left;
         Mat44 T_right;

@@ -1080,9 +1080,9 @@ https://blog.csdn.net/weixin_43991178/article/details/105174734?spm=1001.2014.30
 
 
 
-问： 边到底是观测方程还是参差？
+**问： 边到底是观测方程还是参差？**
 
-​	边有值吗？
+​	**边有值吗？**
 
 很多鲁棒核函数都是分段函数，在输入较大时给出线性的增长速率，例如cauchy核，huber核等等
 
@@ -1115,16 +1115,214 @@ LinearSolver  用来指定具体的线性求解器。
 
 自定义顶点
 virtual bool read(std::istream& is);
-virtual bool write(std::ostream& os) const;
+virtual bool write(std::ostream& os) **const;**
 virtual void oplusImpl(const number_t* update);
 virtual void setToOriginImpl();
 其中read，write函数可以不进行覆写，仅仅声明一下就可以，setToOriginImpl设定被优化变量的原始值，oplusImpl比较重要，我们根据增量方程计算出增量之后，就是通过这个函数对估计值进行调整的
 
 自定义边
 virtual bool read(std::istream& is);
-virtual bool write(std::ostream& os) const;
+virtual bool write(std::ostream& os) **const;**
 virtual void computeError();
 virtual void linearizeOplus();
 read和write函数同上，computeError函数是**使用当前顶点的值计算的测量值与真实的测量值之间的误差**，linearizeOplus函数是**在当前顶点的值下，该误差对优化变量的偏导数，即jacobian。**
 
 优质参考： https://blog.csdn.net/wubaobao1993/article/details/79319215
+
+
+
+
+
+### CMake 新知识
+
+问： .cmake文件的作用，通过find 命令是如何找到目标库的，以及相应的宏是如何设置的；
+
+- `PROJECT_SOURCE_DIR`: 无疑只要是有包含最新PROJECT()命令声明的CMakeLists.txt，则都是相对当该CMakeLists.txt路径。
+
+- `CMAKE_SOURCE_DIR`: 构建整个项目时，可能你依赖的第三方项目，这个变量的值就是最顶层CMakeLists.txt的路径。
+
+* 在 `find_path` 和 `find_library`以及 `find_package` 时，会搜索一些默认的路径。当我们将一些lib安装在非默认搜索路径时，cmake就没法搜索到了，可设置：
+
+​       SET(CMAKE_INCLUDE_PATH "include_path") // find_path，查找头文件
+
+​       SET(CMAKE_LIBRARY_PATH "lib_path") // find_library，查找库文件
+
+​       SET(CMAKE_MODULE_PATH "module_path") // find_package
+
+* 条件控制切换
+
+  ```cmake
+  # set target
+  if (NOT YOUR_TARGET_OS)
+      set(YOUR_TARGET_OS linux)
+  endif()
+  
+  if (NOT YOUR_TARGET_ARCH)
+      set(YOUR_TARGET_ARCH x86_64)
+  endif()
+  
+  if (NOT YOUR_BUILD_TYPE)
+      set (YOUR_BUILD_TYPE Release)
+  endif()
+  
+  ......
+  
+  if(${YOUR_TARGET_ARCH} MATCHES "(arm*)|(aarch64)")
+      ......
+  elseif(${YOUR_TARGET_ARCH} MATCHES x86*)
+      ......
+  ```
+
+  
+
+文件包含：
+
+- `AUX_SOURCE_DIRECTORY` 不会递归包含子目录，仅包含指定的dir目录
+- `ADD_SUBDIRECTORY`子模块的编译，可以将子文件夹中或者指定外部文件夹下CMakeLists.txt执行相关编译工作。
+- `ADD_LIBRARY`编译一个动/静态库或者模块，设定的名字需在整个工程中是独一无二的，而且在整个同一个工程中，跟父子文件夹路径无关，我们便可以通过`TARGET_LINK_LIBRARIES`依赖该模块。
+- `ADD_DEFINITIONS(-DTEST -DFOO="foo")`添加`FOO`和`TEST`宏定义。
+
+
+
+
+
+###  项目版本的管理
+
+使用规则：
+
+实现版本的管理，需要能够在编译过程中清楚的体现当前版本号，在软件中也能够获取版本号。这里版本编号的管理使用常见的`major.minor(.patch)`格式，major是最大的版本编号，minor为其次，patch对应着小版本里的补丁级别。当有极大的更新时，会增加major的版号，而当有大更新，但不至于更新major时，会更新minor的版号，若更新比较小，例如只是bug fixing，则会更新patch的版号。版本号格式示例：`v1.0` 、`v1.2.2`等。
+
+```cpp
+在优雅的构建软件模板中，我们将版本信息放置于src/common/version.hpp文件中：
+
+注：所有的文件路径都是相对项目根目录而言。
+#pragma once                                                                       
+
+// for cmake
+// 用于在CMakeLists文件中解析用
+// 0.1.0                                                                 
+#define HELLO_APP_VER_MAJOR 0                                                      
+#define HELLO_APP_VER_MINOR 1                                                      
+#define HELLO_APP_VER_PATCH 0                                                      
+
+#define HELLO_APP_VERSION (HELLO_APP_VER_MAJOR * 10000 + HELLO_APP_VER_MINOR * 100 + HELLO_APP_VER_PATCH)
+
+// for source code
+// 用于在项目源码中获取版本号字符串
+// v0.1.0                                                           
+#define _HELLO_APP_STR(s) #s                                                       
+#define HELLO_PROJECT_VERSION(major, minor, patch) "v" _HELLO_APP_STR(major.minor.patch)
+    
+    //在CMakeLists模块文件中我们去解析该文件获取版本号到CMake变量中，在cmake/utils.cmake添加宏函数：
+    FUNCTION(hello_app_extract_version)                                 
+    FILE(READ "${CMAKE_CURRENT_LIST_DIR}/src/common/version.hpp" file_contents) 
+    STRING(REGEX MATCH "HELLO_APP_VER_MAJOR ([0-9]+)" _  "${file_contents}")       
+    IF(NOT CMAKE_MATCH_COUNT EQUAL 1)                                           
+        MESSAGE(FATAL_ERROR "Could not extract major version number from version.hpp")
+    ENDIF()                                                                     
+    SET(ver_major ${CMAKE_MATCH_1})                                             
+
+    STRING(REGEX MATCH "HELLO_APP_VER_MINOR ([0-9]+)" _  "${file_contents}")       
+    IF(NOT CMAKE_MATCH_COUNT EQUAL 1)                                           
+        MESSAGE(FATAL_ERROR "Could not extract minor version number from version.hpp")
+    ENDIF()                                                                     
+    SET(ver_minor ${CMAKE_MATCH_1})                                             
+    STRING(REGEX MATCH "HELLO_APP_VER_PATCH ([0-9]+)" _  "${file_contents}")       
+    IF(NOT CMAKE_MATCH_COUNT EQUAL 1)                                           
+        MESSAGE(FATAL_ERROR "Could not extract patch version number from version.hpp")
+    ENDIF()                                                                     
+    SET(ver_patch ${CMAKE_MATCH_1})                                             
+
+    SET(HELLO_APP_VERSION_MAJOR ${ver_major} PARENT_SCOPE)                      
+    SET (HELLO_APP_VERSION "${ver_major}.${ver_minor}.${ver_patch}" PARENT_SCOPE)
+ENDFUNCTION()
+    
+    //在根目录CMakeLists中调用版本宏：
+    CMAKE_MINIMUM_REQUIRED(VERSION 3.4)                                             
+
+#--------------------------------------------                                   
+# Project setting                                                               
+#--------------------------------------------                                   
+INCLUDE(cmake/utils.cmake)                                                      
+HELLO_APP_EXTRACT_VERSION()                                                     
+
+PROJECT(HelloApp VERSION ${HELLO_APP_VERSION} LANGUAGES CXX)                    
+
+MESSAGE(INFO "--------------------------------")                                
+MESSAGE(STATUS "Build HelloApp: ${HELLO_APP_VERSION}")
+```
+
+
+
+#### Debug与Release构建
+
+为了方便debug，我们在开发过程中一般是编译`Debug`版本的库或者应用，可以利用gdb调试很轻松的就可以发现错误具体所在。在主cmake文件中我们只需要加如下设置即可：
+
+```cpp
+IF(NOT CMAKE_BUILD_TYPE)                                                        
+    SET(CMAKE_BUILD_TYPE "Debug" CACHE STRING "Choose Release or Debug" FORCE)  
+ENDIF()                                                                         
+
+MESSAGE(STATUS "Build type: " ${CMAKE_BUILD_TYPE})
+```
+
+在执行cmake命令的时候可以设置`CMAKE_BUILD_TYPE`变量值切换`Debug`或者`Release`版本编译：
+
+```cpp
+$ cmake .. -DCMAKE_BUILD_TYPE=Release
+```
+
+
+
+#### 构建后安装
+
+我们安装需求是：
+
+- `src`目录下的每个模块头文件都能够安装，并按原目录存放安装
+- 库文件安装放于`lib`目录下
+- 可执行文件包括测试文件放于`bin`目录
+
+首先模块头文件的安装实现均在`src/{module}/CMakeLists.txt`中实现，这里是安装目录，并过滤掉`.cpp`或者`.c`文件以及`CMakeLists.txt`文件，以`logger`模块为例：
+
+```cmake
+INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+    FILES_MATCHING 
+    PATTERN "*.h"
+    PATTERN "*.hpp"
+    PATTERN "CMakeLists.txt" EXCLUDE
+    )
+```
+
+注意：在UNIX系统上，`CMAKE_INSTALL_PREFIX`变量默认指向`/usr/local`，在Windows系统上，默认指向`c:/Program Files/${PROJECT_NAME}`。
+
+然后是库文件的安装，也相关`ADD_LIBRARY`命令调用后中实现：
+
+```cmake
+INSTALL(TARGETS module_logger
+    ARCHIVE DESTINATION lib                                                     
+    LIBRARY DESTINATION lib                                                     
+    RUNTIME DESTINATION bin)
+```
+
+最后是可执行文件的安装，跟安装库是一样的，添加到`ADD_EXECUTABLE`命令调用的后面，只是因为是可执行文件，属于`RUNTIME`类型，cmake会自动安装到我们设置的bin目录，这里以`HelloApp`为例：
+
+```cmake
+INSTALL(TARGETS HelloApp
+    ARCHIVE DESTINATION lib                                                     
+    LIBRARY DESTINATION lib                                                     
+    RUNTIME DESTINATION bin)
+```
+
+执行安装命令：
+
+```cmake
+$ make install DESTDIR=$PWD/install
+```
+
+
+
+
+
+###　项目文档自动化如何实现
+

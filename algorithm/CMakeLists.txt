@@ -1,9 +1,14 @@
 set(CMAKE_CURRENT_BINARY_DIR ${PROJECT_SOURCE_DIR})
 
+SET(G2O_LIBS "/usr/local/lib/libg2o_csparse_extension.so" "/usr/local/lib/libg2o_stuff.so" "/usr/local/lib/libg2o_core.so" cxsparse)
+
+
 # Eigen
 include_directories("/usr/include/eigen3")
 
 #Suitesparse
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_modules)
+find_package(CSparse REQUIRED)
 include_directories("/usr/include/suitesparse")
 
 # Sophus
@@ -19,7 +24,7 @@ include_directories(${G2O_INCLUDE_DIRS})
 # include_directories("/usr/local/include/pangolin")
 include_directories(${Pangolin_INCLUDE_DIRS})
 find_package(Pangolin REQUIRED)
-message("**********************************${Pangolin_INCLUDE_DIRS}******************************************")
+message("**********************************${Pangolin_INCLUDE_DIRS}******************************************\n\r")
 
 # OpenCV
 find_package(OpenCV 3.1 REQUIRED)
@@ -42,8 +47,12 @@ set(THIRD_PARTY_LIBS
         glog
         gflags
         g2o_core g2o_stuff g2o_types_sba g2o_solver_csparse g2o_csparse_extension
+        ${CSPARSE_LIBRARY}
+        # ${G2O_LIBS}
         )
- message(" algorithm current source dir : ${PROJECT_SOURCE_DIR}" )
+ message(" CSPARSE_LIBRARY: " ${CSPARSE_LIBRARY})
+ message(" CMAKE_MODULE_PATH: " ${CMAKE_MODULE_PATH})
+ message(" algorithm current source dir ": ${PROJECT_SOURCE_DIR})
 
  file( GLOB ALGORITHM_SRC */src/*.cc)
 message(" ALGORITHM_SRC : " ${ALGORITHM_SRC})
