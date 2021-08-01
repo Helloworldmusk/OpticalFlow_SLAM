@@ -60,7 +60,8 @@ bool Optimizer::set_back_end_status(const BackEndStatus &new_status)
                 }
                 case BackEndStatus::IDLE:
                 {
-                        if (BackEndStatus::INIT == enum_back_end_status_ || BackEndStatus::FINISHED == enum_back_end_status_)
+                        if (BackEndStatus::INIT == enum_back_end_status_ || BackEndStatus::FINISHED == enum_back_end_status_ || 
+                             BackEndStatus::OPTIMIZING == enum_back_end_status_ )
                         {
                                 is_allowed_change = true;
                         }
@@ -162,6 +163,7 @@ void Optimizer::back_end_loop()
                                 DLOG_INFO << " BackEndStatus::FINISHED " << std::endl;
                                 notify_all_updated_map();
                                 set_back_end_status(BackEndStatus::IDLE);
+                                std::this_thread::sleep_for(std::chrono::milliseconds(300));
                                 is_running_.store(false);
                                 break;
                         }
@@ -184,7 +186,7 @@ void Optimizer::back_end_loop()
                         }
                 } //switch (get_back_end_status())
         } //while (is_running_.load())
-        DLOG_INFO << " back end is terminated " << std::endl;
+        DLOG_INFO << " back end will be terminated " << std::endl;
 } //void Optimizer::back_end_loop()
 
 
@@ -247,9 +249,11 @@ Optimizer::BackEndStatus Optimizer::optimize()
 {
         static int64_t counter = 0;
         counter++;
-        if (counter < 3) { return BackEndStatus::RESET; } 
-        if(counter < 5) { return BackEndStatus::INIT; }
-       return BackEndStatus::FINISHED; 
+        // if (counter < 3) { return BackEndStatus::RESET; } 
+        // if(counter < 5) { return BackEndStatus::INIT; }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        return BackEndStatus::IDLE; 
+
 }
 
 

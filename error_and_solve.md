@@ -270,7 +270,7 @@ ${G2O_INCLUDE_DIRS} )
 include_directories("/usr/include/suitesparse")
 ```
 
-
+这个问题在开机重启后又重新出现；一个零时的解办法是 找到csparse_extension.h这个文件，然后把其中 的 #include <cs.h> 替换成 #include <绝对路径下的cs.h>, 这个应该是csparse 这个库的CmakeLists.txt书写的问题；
 
 ### G2O 使用错误；
 

@@ -84,6 +84,7 @@ bool Viewer::wait_update_map_notify()
         wp_map_.lock()->condition_var_is_map_updated_.wait(wp_map_.lock()->data_lock_);
         if(!is_running_.load())
         {
+                DLOG_INFO << " Viewer is running is set to false " << std::endl;
                 return false;
         }
         DLOG_INFO << " viewer received map update " << std::endl;

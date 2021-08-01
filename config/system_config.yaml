@@ -8,10 +8,11 @@ pyrimid.scale: 0.5
 fps: 10
 
 #feature
-features.expected_nums: 100
+features.expected_nums: 200
 features.init_min_threshold: 50
-features.tracking_min_threshold: 50
+features.tracking_min_threshold: 150
 
 #mappoint
 mappoint.init_min_threshold: 50
+mappoint.need_insert_keyframe_min_threshold: 60
 

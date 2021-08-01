@@ -33,6 +33,8 @@ Feature2d::Feature2d(  cv::KeyPoint keypoint)
  */
 Feature2d:: Feature2d(const Vec2 position) : position2d_(position)
 {
+        cv_keypoint_.pt.x = position2d_.x();
+        cv_keypoint_.pt.y = position2d_.y();
         id_ = get_new_id();
 }
 

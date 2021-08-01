@@ -102,6 +102,7 @@ class Tracker {
         int64_t init_map();
         int64_t track_feature_in_current_image();
         int64_t estimate_current_pose();
+        int64_t insert_mappoints();
 
         //data
 

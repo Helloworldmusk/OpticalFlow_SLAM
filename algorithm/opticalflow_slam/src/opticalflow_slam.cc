@@ -331,6 +331,9 @@ bool OP_SLAM::load_system_config()
         f_system_config["mappoint.init_min_threshold"] >> temp_int32_data;
         sp_slam_config_->mappoint_init_min_threshold =  static_cast<int64_t>(temp_int32_data);
 
+        f_system_config["mappoint.need_insert_keyframe_min_threshold"] >> temp_int32_data;
+        sp_slam_config_->mappoint_need_insert_keyframe_min_threshold =  static_cast<int64_t>(temp_int32_data);
+
         sp_slam_config_->show_system_config_info();
 
         f_system_config.release();

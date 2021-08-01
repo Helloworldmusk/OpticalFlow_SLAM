@@ -25,10 +25,15 @@ struct SystemConfig {
         std::vector<double_t>  v_pyrimid_scales;
         int64_t fps{10};
         double_t per_frame_process_time {1000.0 / fps} ;
-        int64_t features_expected_nums { 100 };
+        int64_t features_expected_nums { 80 };
         int64_t features_init_min_threshold { 50 };
         int64_t features_tracking_min_threshold { 50 };
         int64_t mappoint_init_min_threshold { 50 };
+        /** if tracked mappoint nums between features_expected_nums and  mappoint_need_insert_keyframe_min_threshold, 
+          *   a  keyframe is needed;
+          */
+        int64_t mappoint_need_insert_keyframe_min_threshold { 60 };
+
 
     private:
         SystemConfig(){};

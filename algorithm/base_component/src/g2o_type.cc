@@ -77,9 +77,9 @@ void UnaryEdgePose::linearizeOplus()
     double_t fy = K_(1,1);
     double_t Z_inv = 1.0 /(Z + 1e-20);
     double_t Z_inv2 = Z_inv * Z_inv;
-
+    // _jacobianOplusXi << -fx * Z_inv,0, fx * X * Z_inv2,fx * X * Y * Z_inv2,-fx  - fx * X * X * Z_inv2,fx * Y * Z_inv,0,-fy * Z_inv, fy * Y * Z_inv2, fy + fy * Y * Y * Z_inv2     -fy * X * Y * Z_inv2,             -fy * X * Z_inv;
     _jacobianOplusXi << -fx * Z_inv,     0,                       fx * X * Z_inv2,       fx * X * Y * Z_inv2,            -fx  - fx * X * X * Z_inv2,     fx * Y * Z_inv,
-                                               0,                       -fy * Z_inv,     fy * Y * Z_inv2,       fy + fy * Y * Y * Z_inv2     -fy * X * Y * Z_inv2,             -fy * X * Z_inv;
+                                               0,                       -fy * Z_inv,     fy * Y * Z_inv2,       fy + fy * Y * Y * Z_inv2,     -fy * X * Y * Z_inv2,             -fy * X * Z_inv;
 }
 
 
