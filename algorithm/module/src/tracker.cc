@@ -241,6 +241,10 @@ bool Tracker::init_front_end()
         sp_current_frame_ = get_a_frame();
         CHECK_NOTNULL(sp_current_frame_);
         sp_last_frame_ = sp_current_frame_;
+        if(wp_viewer_.lock())
+        {
+                wp_viewer_.lock()->wp_current_frame_ = sp_current_frame_;
+        }
         sp_current_frame_->set_left_pose(SE3(SO3(), Vec3(0,0,0)));
         sp_current_frame_->set_right_pose(SE3(SO3(),sp_camera_config_->base_line));
         if( nullptr ==  sp_current_frame_) { return false; }
@@ -269,6 +273,10 @@ Tracker::FrontEndStatus Tracker::tracking()
         {
                 DLOG_WARNING << " tracking finished " << std::endl;
                 return FrontEndStatus::FINISHED;
+        }
+        if(wp_viewer_.lock())
+        {
+                wp_viewer_.lock()->wp_current_frame_ = sp_current_frame_;
         }
         sp_current_frame_->set_left_pose(relative_motion_ * sp_last_frame_->get_left_pose());
         // track point in current frame'left image;
@@ -671,7 +679,7 @@ int64_t Tracker::estimate_current_pose()
         optimizer.setAlgorithm(solver);
 
         //set Vertex;
-        VertexPose * pose_vertex = new VertexPose();
+        VertexPose* pose_vertex = new VertexPose();
         pose_vertex->setId(0);
         SE3 raw_pose =  sp_current_frame_->get_left_pose();
         pose_vertex->setEstimate(raw_pose);
@@ -716,14 +724,14 @@ int64_t Tracker::estimate_current_pose()
                 optimizer.optimize(5);
                 //mark outliers , use Chi-Squared Test;
                 outlier_cnt = 0;
-                const double_t chi2_threshold { 5.991 };
+                const double_t kChi2Threshold { 5.991 };
                 for (size_t i { 0 }; i < vp_egdes.size(); i++)
                 {
                         if (vsp_feature2ds[i]->is_outline_)
                         {
                                 vp_egdes[i]->computeError();
                         }
-                        if(vp_egdes[i]->chi2() > chi2_threshold)
+                        if(vp_egdes[i]->chi2() > kChi2Threshold)
                         {
                                 vsp_feature2ds[i]->is_outline_ = true;
                                 vp_egdes[i]->setLevel(1);

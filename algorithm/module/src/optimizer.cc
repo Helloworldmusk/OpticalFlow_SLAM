@@ -239,6 +239,7 @@ void Optimizer::notify_all_updated_map()
 }
 
 
+//TODO(snowden)[high]:need to review;
 /**
  * @brief 
  * @author snowden
@@ -247,17 +248,173 @@ void Optimizer::notify_all_updated_map()
  */
 Optimizer::BackEndStatus Optimizer::optimize()
 {
-        static int64_t counter = 0;
-        counter++;
-        // if (counter < 3) { return BackEndStatus::RESET; } 
-        // if(counter < 5) { return BackEndStatus::INIT; }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        g2o::SparseOptimizer optimizer;
+
+        //set Algorithm;
+                //6 _PoseDim, 3 _LandmarkDim
+        typedef g2o::BlockSolver_6_3  BlockSolverType;
+        typedef g2o::LinearSolverDense<BlockSolverType::PoseMatrixType> LinearSolverType;
+        auto solver = new   g2o::OptimizationAlgorithmLevenberg(
+                                                        g2o::make_unique<BlockSolverType>(
+                                                                g2o::make_unique<LinearSolverType>()
+                                                        )
+                                                );
+        optimizer.setAlgorithm(solver);
+
+        //set Vertex;
+        int64_t vertex_index { 0 };
+                //vertex_pose;
+        int64_t vertex_pose_size = wp_map_.lock()->get_actived_keyframes().size();
+        if(vertex_pose_size < 2)
+        {
+                return BackEndStatus::IDLE; 
+        }
+        std::deque<std::shared_ptr<KeyFrame>> dsp_actived_keyframes = wp_map_.lock()->get_actived_keyframes();
+        std::vector<std::shared_ptr<VertexPose>> vsp_pose_vertex;
+        for(int i { 0 }; i < vertex_pose_size; i++)
+        {
+                VertexPose* new_pose_vertex = new VertexPose();
+                new_pose_vertex->setId(vertex_index);
+                vertex_index++;
+                new_pose_vertex->setEstimate(dsp_actived_keyframes[i]->get_left_pose());
+                //the first frame is fixed;
+                if(0 == dsp_actived_keyframes[i]->id_)
+                {
+                        new_pose_vertex->setFixed(true);
+                }
+                optimizer.addVertex(new_pose_vertex);
+                vsp_pose_vertex.push_back(std::shared_ptr<VertexPose>(new_pose_vertex));
+        }
+                //vertex_mappoint;
+        int64_t vertex_mappoint_size = wp_map_.lock()->get_actived_mappoints().size();
+        std::deque<std::shared_ptr<Mappoint3d>> dsp_actived_mappoints = wp_map_.lock()->get_actived_mappoints(); 
+        std::vector<std::shared_ptr<VertexMappoint>> vsp_mappoint_vertex;
+        for(int j { 0 }; j < vertex_mappoint_size; j++ )
+        {
+                VertexMappoint* new_mappoint_vertex = new VertexMappoint();
+                new_mappoint_vertex->setId(vertex_index);
+                vertex_index++;
+                new_mappoint_vertex->setEstimate(dsp_actived_mappoints[j]->get_position3d());
+                optimizer.addVertex(new_mappoint_vertex);
+                vsp_mappoint_vertex.push_back(std::shared_ptr<VertexMappoint>(new_mappoint_vertex));
+        }
+
+        //set Edge;
+                //edge_index is after vertex_index;
+        int64_t edge_index { vertex_index }; 
+        EdgePoseMappoint*  new_edge = nullptr;
+        Mat33 K = sp_camera_config_->K_left;
+        const double_t kChi2Threshold { 5.991 };
+        std::vector<std::shared_ptr<EdgePoseMappoint>> vsp_pose_mappoint_edge;
+        std::map<std::shared_ptr<EdgePoseMappoint>, std::shared_ptr<Feature2d>> msp_edge_feature2d;
+        for(int n { 0 }; n < vertex_mappoint_size; n++)
+        {
+                for(int m { 0 }; m < vertex_pose_size; m++)
+                {
+                        for( auto observer : dsp_actived_mappoints[n]->vwp_observers_)
+                        {
+                                if(observer.lock()->get_frame_linked() == dsp_actived_keyframes[m]->sp_frame_)
+                                {
+                                        new_edge = new EdgePoseMappoint(K, dsp_actived_keyframes[m]->sp_frame_->get_left_pose());
+                                        new_edge->setId(edge_index);
+                                        edge_index++;
+                                        new_edge->setVertex(0, vsp_pose_vertex[m].get());
+                                        new_edge->setVertex(1, vsp_mappoint_vertex[n].get());
+                                        new_edge->setMeasurement(observer.lock()->position2d_);
+                                        new_edge->setInformation(Eigen::Matrix2d::Identity());
+                                        auto rk_hb = new g2o::RobustKernelHuber();
+                                        rk_hb->setDelta(kChi2Threshold);
+                                        new_edge->setRobustKernel(rk_hb);
+                                        optimizer.addEdge(new_edge);
+                                        vsp_pose_mappoint_edge.push_back(std::shared_ptr<EdgePoseMappoint>(new_edge));
+                                        msp_edge_feature2d.emplace(new_edge,observer.lock());
+                                }
+                        }
+                }
+        }
+        DLOG_INFO << " vsp_pose_vertex.size() : " << vsp_pose_vertex.size()  << std::endl;
+        DLOG_INFO << " vsp_mappoint_vertex.size() : " << vsp_mappoint_vertex.size() << std::endl;
+        DLOG_INFO << " vsp_pose_mappoint_edge.size() : " << vsp_pose_mappoint_edge.size() << std::endl;
+
+        //init optimizer and run optimizer 
+                /**
+                 * setLevel(int ) is useful when you call optimizer.initializeOptimization(int ). 
+                 * If you assign initializeOptimization(0), the optimizer will include all edges 
+                 * up to level 0 in the optimization, and edges set to level >=1 will not be included.
+                 * default level = 0
+                 */ 
+        optimizer.initializeOptimization();
+        optimizer.optimize(10);
+
+        //set new pose and mappoint position;
+        for(int i { 0 }; i < dsp_actived_keyframes.size(); i++)
+        {
+                dsp_actived_keyframes[i]->set_left_pose(vsp_pose_vertex[i]->estimate());
+        }
+        for(int j { 0 }; j < dsp_actived_mappoints.size(); j++)
+        {
+                dsp_actived_mappoints[j]->set_position3d(vsp_mappoint_vertex[j]->estimate());
+        }
+        
+        //mark and delelte outlier;
+        
+        int64_t outlier_cnt { 0 };
+        int64_t inlier_cnt { 0 };
+        double_t temp_chi2_threshold { kChi2Threshold };
+                /**
+                 * we hope the number of inlier is great half of total, if number of inlier is less than half, 
+                 * than change the threshold;
+                 */ 
+        for(int k { 0 }; k < 3; k++)
+        {
+                outlier_cnt = 0;
+                inlier_cnt = 0;
+                for (size_t i { 0 }; i < vsp_pose_mappoint_edge.size(); i++)
+                {
+                        if (vsp_pose_mappoint_edge[i]->chi2() > temp_chi2_threshold)
+                        {
+                                outlier_cnt++;
+                        }
+                        else
+                        {
+                                inlier_cnt++;
+                        }
+                }
+                if(static_cast<double_t>(inlier_cnt)/ static_cast<double_t>(inlier_cnt + outlier_cnt) > 0.5)
+                {
+                        break;
+                }
+                else
+                {
+                        temp_chi2_threshold *=  1.5;
+                }
+        }
+        for(auto x : msp_edge_feature2d)
+        {
+                //if x is outlier, delete link fromm mappoint -> feature, and link from feature -> mappoint;
+                if(x.first->chi2() > temp_chi2_threshold)
+                {
+                        x.second->is_outline_ = true;
+                        std::vector<std::weak_ptr<Feature2d>> vwp_obs = x.second->get_mappoint3d_linked()->vwp_observers_;
+                        for(auto it = vwp_obs.begin(); it != vwp_obs.end(); it++ )
+                        {
+                                if((*it).lock() == x.second)
+                                {
+                                        x.second->get_mappoint3d_linked()->vwp_observers_.erase(it);
+                                        break;
+                                }
+                        }
+                        x.second->set_mappoint3d_linked(nullptr);
+                }
+                else
+                {
+                        x.second->is_outline_ = false;
+                }
+        }
+        DLOG_INFO << "backend optimize finished , Outlier / Inlier : " <<  outlier_cnt << " / " << inlier_cnt << std::endl;
+
         return BackEndStatus::IDLE; 
-
 }
-
-
-
 
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam

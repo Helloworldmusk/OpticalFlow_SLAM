@@ -51,6 +51,35 @@ class VertexPose : public g2o::BaseVertex<6,SE3> {
 
 
 /**
+ *  @brief Mappoint Vertex define;
+ *  @author snowden
+ *  @date 2021-08-02 
+ *  @version 1.0
+ *  @param first minimal dimension of the vertex, e.g., 3 for  3D mappoint
+ *  @param second  internal type to represent the estimate
+ */
+class VertexMappoint : public g2o::BaseVertex<3,Vec3> {
+
+    public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+        /**
+         * update the position of the node from the parameters in v.
+         * Implement in your class!
+         */
+        virtual void oplusImpl(const number_t* v);
+        //! sets the node to the origin (used in the multilevel stuff)
+        virtual void setToOriginImpl();
+        //! read the vertex from a stream, i.e., the internal state of the vertex
+        virtual bool read(std::istream& is);
+        //! write the vertex to a stream
+        virtual bool write(std::ostream& os) const ;
+
+    private:
+
+};
+
+
+/**
  *  @brief Unary edge Vertex define;
  *  @author snowden
  *  @date 2021-07-30 
@@ -74,6 +103,34 @@ class UnaryEdgePose: public g2o::BaseUnaryEdge<2, Vec2, VertexPose> {
         Vec3 mappoint3d_;
         Mat33 K_;
 };
+
+
+/**
+ *  @brief edge between pose and mappoint;
+ *  @author snowden
+ *  @date 2021-08-03 
+ *  @version 1.0
+ *  @param first  dimension of the edge
+ *  @param second  typename of the edge
+ *  @param third  typename of the vertex1
+ *  @param fourth  typename of the vertex2
+ */
+class EdgePoseMappoint: public g2o::BaseBinaryEdge<2, Vec2, VertexPose, VertexMappoint> {
+    public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+        EdgePoseMappoint(const Mat33 K, const SE3 pose);  
+        virtual void linearizeOplus();
+        // computes the error of the edge and stores it in an internal structure
+        virtual void computeError();
+        //! read the vertex from a stream, i.e., the internal state of the vertex
+        virtual bool read(std::istream& is);
+        //! write the vertex to a stream
+        virtual bool write(std::ostream& os) const ;
+    private:
+        SE3 pose_;
+        Mat33 K_;
+};
+
 
 } //namespace OpticalFlow_SLAM_algorithm_opticalflow_slam
 

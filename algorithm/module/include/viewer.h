@@ -37,6 +37,7 @@ class Viewer {
         std::weak_ptr<Optimizer> wp_optimizer_;
         std::shared_ptr<Tracker> sp_tracker_;
         std::weak_ptr<Frame> wp_current_frame_; 
+        //TODO(snowden): need add Frame vector;
         std::vector<std::shared_ptr<Mappoint3d>> vsp_mappoints_;
         std::thread viewer_thread_;
         std::atomic<bool> is_running_;
@@ -56,10 +57,11 @@ class Viewer {
     private:
         void viewer_loop();
         bool wait_update_map_notify();
-        bool update_viewer(pangolin::OpenGlRenderState& camera, pangolin::View& displayer);
+        bool update_viewer(pangolin::OpenGlRenderState& camera, pangolin::View& displayer, pangolin::GlTexture& imgTexture, pangolin::View& image_displayer);
         bool draw_frame(const SE3 pose, const float color[3]);
         bool draw_mappoints(const float color[3]);
         void follow_frame(const SE3 pose, pangolin::OpenGlRenderState& camera);
+        void draw_image(const cv::Mat& image, pangolin::OpenGlRenderState& camera, pangolin::GlTexture& imgTexture, pangolin::View& image_displayer); 
 
         
 

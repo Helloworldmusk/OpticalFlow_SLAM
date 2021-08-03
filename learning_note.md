@@ -58,7 +58,7 @@ int sample::count = 0;                 //static variable initialisation
 int main()
 {
 
-}
+}+
 ```
 
 
@@ -324,7 +324,7 @@ int main()
 
 | [lock](https://en.cppreference.com/w/cpp/thread/mutex/lock)  | locks the mutex, blocks if the mutex is not available (public member function) |
 | ------------------------------------------------------------ | ------------------------------------------------------------ |
-| [try_lock](https://en.cppreference.com/w/cpp/thread/mutex/try_lock) | tries to lock the mutex, returns if the mutex is not available (public member function) |
+| [try_lock](https://en.cppreference.com/w/cpp/thread/mutex/try_lock) | tries to lock the mutex, **returns if the mutex is not available** (public member function)On **successful lock acquisition returns true, otherwise returns false.** |
 | [unlock](https://en.cppreference.com/w/cpp/thread/mutex/unlock) | unlocks the mutex (public member function)                   |
 
  但是不经常使用std::mutex
@@ -941,17 +941,17 @@ inline bool triangulation(const std::vector<SE3> &poses,
 
 ​		当前已知相机1的坐标系为世界坐标系，相机2的投影矩阵为 Pro2 = [R | t];
 
-​		Pro2 = [P1, P2, P3].trans;
+​		投影矩阵 Pro2 = [P1, P2, P3].trans;
 
-​		Point3d 在相机1的归一化平面投影为A[x1, y1,  1].trans ， 在相机2的归一化平面投影为B[x2, y2, 1].trans
+​		Point3d 在相机1的归一化平面投影为A[x1, y1,  1].trans， 在相机2的归一化平面投影为B[x2, y2, 1].trans
 
 ​		则 B = Pro2 \* Point3d / Z；
 
-​		B X B = 0 = B × Pro2 \* Point3d =
+​		B X B = 0 = B × Pro2 \* Point3d / Z=
 
 $$\left\{\begin{matrix} 0 & -1 & y2 \\ 1 & 0 & -x2, \\ -y1 & x1 & 0 \end{matrix}\right\} $$ \* [P1* Point3d , P2 * Point3d, P3 \* Point3d ] = 0;
 
-展开这个等式后，有一个等式和上面两个等式线性相关，所以一个归一化平面上的点提供了三个等式，除了一个线性相关，实际上一共提供了两个约束条件，所以两个归一化平面上的点，就可以结出三维点Point3d；
+展开这个等式后，有一个等式和上面两个等式线性相关，所以一个归一化平面上的点提供了三个等式，除了一个线性相关，实际上一共提供了两个约束条件，未知数为3D点，三维，所以两个归一化平面上的点，就可以结出三维点Point3d；
 
 联合两个点的等式，有：Mat \* Point3d = 0; 其中Mat = 
 
@@ -967,7 +967,7 @@ $$\left\{\begin{matrix} 0 & -1 & y2 \\ 1 & 0 & -x2, \\ -y1 & x1 & 0 \end{matrix}
 
 参考资料3： https://blog.csdn.net/YunLaowang/article/details/99414762#commentBox
 
-
+**问: 不在归一化平面上应该也是可以的吧？**
 
 
 
@@ -1018,8 +1018,6 @@ Block of size 3x3
 
 
 
-
-
 Eigen 安装的三种方式：
 
 1. 直接将Eigen当做工程的一个子文件夹，直接进行调用；
@@ -1061,9 +1059,11 @@ https://blog.csdn.net/weixin_43991178/article/details/105142470?spm=1001.2014.30
 
 https://blog.csdn.net/weixin_43991178/article/details/105174734?spm=1001.2014.3001.5501
 
+http://www.biexiaoyu1994.com/%E5%BA%93%E5%87%BD%E6%95%B0%E5%AD%A6%E4%B9%A0/2019/02/20/pangolin/
 
 
-**G2O**
+
+### G2O
 
 ![img](typora_image/20180212222953144)
 
@@ -1082,7 +1082,7 @@ https://blog.csdn.net/weixin_43991178/article/details/105174734?spm=1001.2014.30
 
 **问： 边到底是观测方程还是参差？**
 
-​	**边有值吗？**
+​	**边有值吗？** 本质上是两个顶点之间的转换关系，但是优化过程中，是为了让观测值和估计值之间的差值最小化；
 
 很多鲁棒核函数都是分段函数，在输入较大时给出线性的增长速率，例如cauchy核，huber核等等
 
@@ -1128,6 +1128,8 @@ virtual void linearizeOplus();
 read和write函数同上，computeError函数是**使用当前顶点的值计算的测量值与真实的测量值之间的误差**，linearizeOplus函数是**在当前顶点的值下，该误差对优化变量的偏导数，即jacobian。**
 
 优质参考： https://blog.csdn.net/wubaobao1993/article/details/79319215
+
+​		https://wym.netlify.app/2019-07-05-orb-slam2-optimization2/
 
 
 
@@ -1320,9 +1322,28 @@ INSTALL(TARGETS HelloApp
 $ make install DESTDIR=$PWD/install
 ```
 
-
-
-
-
 ###　项目文档自动化如何实现
 
+
+
+计算机视觉life 作业文档；
+
+https://zhuanlan.zhihu.com/p/345351107
+
+
+
+### 智能指针和普通指针之间的转换
+
+```cpp
+ 1 struct test
+ 2 {
+ 3      int num;
+ 4      string name;
+ 5 };
+ 6 
+ 7 test* pTest = new test();
+ 8 std::shared_ptr<test> ptr_test = std::shared_ptr<test>(pTest); //普通指针转shared_ptr
+ 9 
+10 std::shared_ptr<test> ptr_test2 = std::make_shared<test>();
+11 test* pTest2 = ptr_test2.get(); //shared_ptr转普通指针
+```

@@ -233,7 +233,7 @@ Thread 2 "run_vo" received signal SIGSEGV, Segmentation fault.
 
 初步的解决办法，给current_frame加锁；外边包装一个函数，并且把current_frame 当做一个私有变量；
 
-解决办法：给制定元素加锁，也依然出现了这个问题，后来把出错地方的weak_ptr转换为 share_ptr 后，就可以了，原因未知；（可能是weak_ptr没有占用权，所以有可能 weak_ptr访问 目标的时候，目标已经释放了？）
+解决办法：给指定元素加锁，也依然出现了这个问题，后来把出错地方的weak_ptr转换为 share_ptr 后，就可以了，原因未知；（可能是weak_ptr没有占用权，所以有可能 weak_ptr访问 目标的时候，目标已经释放了？）
 
 
 
@@ -285,3 +285,24 @@ base_unary_edge.hpp:45:10: error: **invalid new-expression of abstract class typ
 任何不会修改数据成员的函数都应该声明为const 类型。如果在编写const 成员函数时，不慎修改了数据成员，或者调用了其它非const 成员函数，编译器将指出错误，这无疑会提高程序的健壮性。
 
 参考： https://blog.csdn.net/eickandy/article/details/65630511
+
+
+
+**Pangolin:**
+
+1. pangolin多窗口时出现这个问题：
+
+pangolin::GlTexture imgTexture1
+
+**"pangolin::GlTexture::GlTexture(const pangolin::GlTexture &)" (已声明 所在行数:121，所属文件:"/usr/local/include/pangolin/gl/gl.h") 不可访问C/C++(330)**
+
+可能原因：限定了构造函数只能使用带参数的构造函数，而在值传递过程中，要调用默认构造函数，而默认构造函数又不可用，所以导致报这个错；
+
+修复办法，所有使用这个对象的，都直接使用引用，而非值传递；
+
+2. pangolin 显示图片过程中出现很多斜纹和噪声点，而且框内不止一个图片，而是多个图片同事出现，尺寸也不对；
+
+![image-20210802144503081](typora_image/image-20210802144503081.png)
+
+ 原因未知，目前采用opencv显式来进行替代；
+
