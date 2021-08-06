@@ -1145,11 +1145,11 @@ read和write函数同上，computeError函数是**使用当前顶点的值计算
 
 * 在 `find_path` 和 `find_library`以及 `find_package` 时，会搜索一些默认的路径。当我们将一些lib安装在非默认搜索路径时，cmake就没法搜索到了，可设置：
 
-​       SET(CMAKE_INCLUDE_PATH "include_path") // find_path，查找头文件
+​       **SET(CMAKE_INCLUDE_PATH "include_path") // find_path，查找头文件**
 
-​       SET(CMAKE_LIBRARY_PATH "lib_path") // find_library，查找库文件
+​       **SET(CMAKE_LIBRARY_PATH "lib_path") // find_library，查找库文件**
 
-​       SET(CMAKE_MODULE_PATH "module_path") // find_package
+​       **SET(CMAKE_MODULE_PATH "module_path") // find_package**
 
 * 条件控制切换
 
@@ -1346,4 +1346,12 @@ https://zhuanlan.zhihu.com/p/345351107
  9 
 10 std::shared_ptr<test> ptr_test2 = std::make_shared<test>();
 11 test* pTest2 = ptr_test2.get(); //shared_ptr转普通指针
+
+weak_ptr 指针被赋值时，不能使用lock();
+比如下面这个就是错的；
+    std::weak_ptr<int> ptr;
+	int* x;
+	ptr.lock() = x; XXXXXXXXXXXXXXXXXXXXX
+     正确的应该是ptr = x;
 ```
+

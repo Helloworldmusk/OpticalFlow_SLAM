@@ -132,7 +132,6 @@ void Tracker::front_end_loop()
 {
         while(is_running_)
         {
-                // DLOG_INFO << " front_end loop is running " << std::endl;
                 switch (get_front_end_status() )
                 {
                         case FrontEndStatus::READY:
@@ -180,9 +179,9 @@ void Tracker::front_end_loop()
                         case FrontEndStatus::NEED_INSERT_KEYFRAM:
                         {
                                 DLOG_INFO << " FrontEndStatus::NEED_INSERT_KEYFRAM " << std::endl;
-                                DLOG_INFO <<"sp_last_frame_->vsp_left_feature_[10]->position2d_ 1 :" <<sp_last_frame_->vsp_left_feature_[10]->position2d_ << std::endl;
                                 if (insert_keyframe())
                                 {
+                                        notify_all_updated_map();
                                         set_front_end_status(FrontEndStatus::TRACKING);
                                 }
                                 else
@@ -201,6 +200,7 @@ void Tracker::front_end_loop()
                         {
                                 DLOG_INFO << " FrontEndStatus::RESET " << std::endl;
                                 CHECK_EQ(reset(), true);
+                                std::this_thread::sleep_for(std::chrono::milliseconds(3000));
                                 set_front_end_status(FrontEndStatus::INITING);
                                 break;
                         }
@@ -278,7 +278,9 @@ Tracker::FrontEndStatus Tracker::tracking()
         {
                 wp_viewer_.lock()->wp_current_frame_ = sp_current_frame_;
         }
-        sp_current_frame_->set_left_pose(relative_motion_ * sp_last_frame_->get_left_pose());
+        SE3 frame_pose = relative_motion_ * sp_last_frame_->get_left_pose();
+        sp_current_frame_->set_left_pose(frame_pose);
+        sp_current_frame_->set_right_pose(SE3(frame_pose.so3(),sp_camera_config_->base_line));
         // track point in current frame'left image;
         int64_t tracked_num = track_feature_in_current_image();
         if(tracked_num < sp_slam_config_->mappoint_need_insert_keyframe_min_threshold)
@@ -290,12 +292,19 @@ Tracker::FrontEndStatus Tracker::tracking()
         else
         {
                 DLOG_INFO << "Frame:  " << sp_current_frame_->id_ <<  "  timestamp : " << sp_current_frame_->timestamp_ 
-                                         << "  Tracked " << tracked_num << " features,   status is good " << std::endl;
+                                         << "  Tracked " << tracked_num << std::endl;
+                if(tracked_num > sp_slam_config_->features_tracking_min_threshold)
+                {
+                        DLOG_INFO << "tracker status is good " << std::endl;
+                }
+                else
+                {
+                        DLOG_INFO << "tracker: need insert keyframe " << std::endl;
+                }
                                          
         }
         // estimate current fine pose;
         int64_t inlier_num =  estimate_current_pose();
-        // DLOG_INFO <<"sp_current_frame_->vsp_left_feature_[10]->position2d_" <<sp_current_frame_->vsp_left_feature_[10]->position2d_ << std::endl;
         // update relative_motion_
         relative_motion_ =   sp_current_frame_->get_left_pose() * sp_last_frame_->get_left_pose().inverse();
         // check if tracked point number great than threshold, otherwise need insert keyframe;
@@ -327,7 +336,6 @@ Tracker::FrontEndStatus Tracker::tracking()
 bool Tracker::insert_keyframe()
 {
         SE3 right_pose = SE3(sp_current_frame_->get_left_pose().so3(), sp_current_frame_->get_left_pose().translation() +  sp_camera_config_->base_line);
-        // DLOG_INFO << " keyframe right pose : \n\r\n\r" << right_pose.matrix() << "\n\r " << std::endl;
         sp_current_frame_->set_right_pose(right_pose);
         if (detect_left_image_features() < sp_slam_config_->features_init_min_threshold) { return false; }
         if (track_feature_in_right_image() < sp_slam_config_->features_init_min_threshold) { return false; }
@@ -427,7 +435,6 @@ std::shared_ptr<Frame> Tracker::get_a_frame()
         {
                 return nullptr;
         }
-        // DLOG_INFO << " frame time stamp is " << sp_frame->timestamp_ << std::endl;
         return sp_frame;
 }
 
@@ -445,7 +452,6 @@ int64_t Tracker::detect_left_image_features()
         cv::Mat mask(sp_current_frame_->left_image_.size(), CV_8UC1, cv::Scalar(0));
         
         std::vector<cv::KeyPoint> keypoints;
-        // DLOG_INFO << " sp_last_frame_->vsp_left_feature_.size() : " << sp_last_frame_->vsp_left_feature_.size() << std::endl;
         
         if(sp_last_frame_->vsp_left_feature_.size())
         {
@@ -454,7 +460,6 @@ int64_t Tracker::detect_left_image_features()
                         cv::rectangle(mask, feature->cv_keypoint_.pt - cv::Point2f(10,10),  feature->cv_keypoint_.pt + cv::Point2f(10,10), cv::Scalar(255), CV_FILLED);
                 }
                 gftt_detector_->detect(sp_current_frame_->left_image_, keypoints, mask);
-                // DLOG_INFO << " keypoints size() : " << keypoints.size() << std::endl;
         }
         else
         {
@@ -464,9 +469,12 @@ int64_t Tracker::detect_left_image_features()
 
         for(auto& keypoint : keypoints)
         {
-               std::shared_ptr<Feature2d> feature_point = std::shared_ptr<Feature2d>(new Feature2d(keypoint));
-               feature_point->set_frame_linked(sp_current_frame_);
-               sp_current_frame_->vsp_left_feature_.push_back(feature_point);
+               std::shared_ptr<Feature2d> feature = std::shared_ptr<Feature2d>(new Feature2d(keypoint));
+               feature->is_left_ = true;
+               feature->set_frame_linked(sp_current_frame_);
+        //        DLOG_INFO<< " current frame id : " << sp_current_frame_->id_<< std::endl;
+        //        DLOG_INFO<< " feature->get_frame_linked()->id_ " <<feature->get_frame_linked()->id_ << std::endl;
+               sp_current_frame_->vsp_left_feature_.push_back(feature);
                cv::circle(sp_current_frame_->left_image_, keypoint.pt, 3, cv::Scalar(255,255,255));
         }
         DLOG_INFO << " keypoints size() : " << keypoints.size() << std::endl;
@@ -518,7 +526,9 @@ int64_t Tracker::track_feature_in_right_image()
                 {
                         std::shared_ptr<Feature2d> feature 
                                 = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_right_keypoints[i].x, v_right_keypoints[i].y)));
+                        feature->is_left_ = false;
                         feature->set_frame_linked(sp_current_frame_);
+                        // DLOG_INFO<< " current frame id : " << sp_current_frame_->id_<< " feature->get_frame_linked()->id_ " <<feature->get_frame_linked()->id_ << std::endl;
                         sp_current_frame_->vsp_right_feature_.push_back(feature);
                         good_point_counter++;
                 }
@@ -572,6 +582,7 @@ int64_t Tracker::init_map()
                  counter++;
                 //  DLOG_INFO << " ######### point3d: "  << points_3d << std::endl;
                  std::shared_ptr<Mappoint3d> new_mappoint = std::shared_ptr<Mappoint3d>(new Mappoint3d(sp_current_frame_->timestamp_, points_3d));
+                 CHECK_NOTNULL(new_mappoint);
                  new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_left_feature_[i]);
                  new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_right_feature_[i]);
                  sp_current_frame_->vsp_left_feature_[i]->set_mappoint3d_linked(new_mappoint);
@@ -608,7 +619,6 @@ int64_t Tracker::track_feature_in_current_image()
                 DLOG_INFO <<  " last frame keypoint is little, can't track normal " << std::endl;
                 return 0;
         }
-        // DLOG_INFO << "sp_camera_config_->K_left : \n\r" << sp_camera_config_->K_left << std::endl;
         int64_t no_mappoint3d_linked_feature { 0 };
         for (auto& feature: sp_last_frame_->vsp_left_feature_)
         {
@@ -642,11 +652,16 @@ int64_t Tracker::track_feature_in_current_image()
         {
                 if (status[i])
                 {
-                        // DLOG_INFO << " v_current_keypoints[i] : " << v_current_keypoints[i] << std::endl;
                         std::shared_ptr<Feature2d> feature 
                                 = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_current_keypoints[i].x, v_current_keypoints[i].y)));
+                        feature->is_left_ = true;
                         feature->set_frame_linked(sp_current_frame_);
+                        // DLOG_INFO<< " current frame id : " << sp_current_frame_->id_<< " feature->get_frame_linked()->id_ " <<feature->get_frame_linked()->id_ << std::endl;
                         feature->set_mappoint3d_linked(sp_last_frame_->vsp_left_feature_[i]->get_mappoint3d_linked());
+                        if(nullptr !=  feature->get_mappoint3d_linked())
+                        {
+                                feature->get_mappoint3d_linked()->vwp_observers_.push_back(feature);
+                        }
                         sp_current_frame_->vsp_left_feature_.push_back(feature);
                         good_point_counter++;
                 }
@@ -747,7 +762,7 @@ int64_t Tracker::estimate_current_pose()
         DLOG_INFO <<  "  no_mappoint3d_linked_feature2d_num : " << no_mappoint3d_linked_feature2d_num << std::endl;
         DLOG_INFO <<  "  outlier / feature size : " << outlier_cnt << " / " << vsp_feature2ds.size() << std::endl;
         sp_current_frame_->set_left_pose(pose_vertex->estimate());
-        // DLOG_INFO <<  "  current pose : \n\r\n\r" << sp_current_frame_->get_left_pose().matrix() << "\n\r"<< std::endl;
+        sp_current_frame_->set_right_pose(SE3(pose_vertex->estimate().so3(),sp_camera_config_->base_line));
 
 
 

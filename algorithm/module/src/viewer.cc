@@ -59,7 +59,6 @@ void Viewer::viewer_loop()
         pangolin::GlTexture imgTexture1(1226, 370, GL_RGB, false, 0, GL_BGR, GL_UNSIGNED_BYTE);
         while (is_running_.load())
         {
-                // DLOG_INFO << "viewer is running " << std::endl;
                 // SHOW_FUNCTION_INFO
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
@@ -128,7 +127,6 @@ bool Viewer::draw_frame(const SE3 pose, const float color[3])
 {
  
         SE3 Twc = pose.inverse();
-        // DLOG_INFO << " draw frame *********************** " << std::endl;
         glPushMatrix();
 
         Sophus::Matrix4f m = Twc.matrix().template cast<float>();
@@ -184,7 +182,6 @@ bool Viewer::draw_mappoints(const float color[3])
 {
         glPointSize(5);
         glBegin(GL_POINTS);
-        // DLOG_INFO << "############ viewer : vsp mappoint size : " << vsp_mappoints_.size() << std::endl;
         for (auto& mappoint : vsp_mappoints_) 
         {
                 auto pos = mappoint->get_position3d();

@@ -77,7 +77,6 @@ bool TriangulateNormalizedPoint(const Vec3& point1, const Vec3& point2, const SE
 {
         MatXX A(4, 4);
         Vec4   b(4);
-        // DLOG_INFO << "******* point1: " << point1.transpose() <<  " point 2 " << point2.transpose() << std::endl;
         b.setZero();
         A.block<1,4>(0,0) = point1.x() * pose1.matrix3x4().row(2) - pose1.matrix3x4().row(0);
         A.block<1,4>(1,0) = point1.y() * pose1.matrix3x4().row(2) - pose1.matrix3x4().row(1);
@@ -87,7 +86,6 @@ bool TriangulateNormalizedPoint(const Vec3& point1, const Vec3& point2, const SE
          position3d = (svd.matrixV().col(3) / svd.matrixV()(3,3)).head<3>();
          if(svd.singularValues()[3] / svd.singularValues()[2] > 1e-2)
          {
-                //  DLOG_INFO << "TriangulateNormalizedPoint:  result is not good  " << std::endl;
                 return false;
          }
          return true;

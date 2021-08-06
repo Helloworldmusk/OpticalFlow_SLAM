@@ -13,7 +13,7 @@ namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
  * @version 1.0
  * @note it's pose will be modified by mulit thread
  */        
-class KeyFrame : public Frame {
+class KeyFrame  {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 

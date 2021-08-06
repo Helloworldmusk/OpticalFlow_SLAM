@@ -65,7 +65,7 @@ class Optimizer {
         bool init_back_end();
         bool wait_update_map_notify();
         void notify_all_updated_map();
-        BackEndStatus optimize();
+        BackEndStatus backend_optimize();
         BackEndStatus enum_back_end_status_ { BackEndStatus::UNKNOW };
         std::thread back_end_thread_;
         

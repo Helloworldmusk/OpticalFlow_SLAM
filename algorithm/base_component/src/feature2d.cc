@@ -47,7 +47,7 @@ Feature2d:: Feature2d(const Vec2 position) : position2d_(position)
  */
 Feature2d:: ~Feature2d()
 {
-
+        std::cout << "destory feature2d : " << std::endl;
 }
 
 
@@ -57,7 +57,7 @@ Feature2d:: ~Feature2d()
  *  @date 2021-07-28 
  *  @version 1.0
  */
-void Feature2d::set_mappoint3d_linked(std::shared_ptr<Mappoint3d> mappoint3d)
+void Feature2d::set_mappoint3d_linked(const std::shared_ptr<Mappoint3d>& mappoint3d)
 {
         std::unique_lock<std::mutex> linked_mappoint3d_lock { linked_mappoint3d_mutex_ };
         sp_mappiont3d_ = mappoint3d;
@@ -79,10 +79,10 @@ std::shared_ptr<Mappoint3d> Feature2d::get_mappoint3d_linked()
  *  @date 2021-07-28 
  *  @version 1.0
  */
-void Feature2d::set_frame_linked(std::shared_ptr<Frame> sp_frame)
+void Feature2d::set_frame_linked(const std::shared_ptr<Frame>& sp_frame)
 {
-        std::unique_lock<std::mutex> linked_frame_lock_ { linked_frame_mutex_ };
-        wp_frame_.lock() = sp_frame;
+        // std::unique_lock<std::mutex> linked_frame_lock_ { linked_frame_mutex_ };
+        wp_frame_ = sp_frame;
 }
 /**
  *  @brief 
@@ -90,10 +90,11 @@ void Feature2d::set_frame_linked(std::shared_ptr<Frame> sp_frame)
  *  @date 2021-07-28 
  *  @version 1.0
  */
-std::shared_ptr<Frame> Feature2d::get_frame_linked()
+std::weak_ptr<Frame> Feature2d::get_frame_linked()
 {
-        std::unique_lock<std::mutex> linked_frame_lock_ { linked_frame_mutex_ };
-        return wp_frame_.lock();
+        // std::unique_lock<std::mutex> linked_frame_lock_ { linked_frame_mutex_ };
+        // std::cout << " feature2d id :   " <<  this->id_ << std::endl;
+        return wp_frame_;
 }
 
 

@@ -306,3 +306,171 @@ pangolin::GlTexture imgTexture1
 
  原因未知，目前采用opencv显式来进行替代；
 
+
+
+### g2o错误：
+
+在运行优化时出现错误：
+
+```cpp
+PlainObjectBase.h:285：void Eigen::PlainObjectBase<Derived>::resize(Eigen::Index, Eigen::Index) [with Derived = Eigen::Matrix<double, 6, 6, 0, 6, 6>; Eigen::Index = long int]: 假设 ‘(!(RowsAtCompileTime!=Dynamic) || (rows==RowsAtCompileTime)) && (!(ColsAtCompileTime!=Dynamic) || (cols==ColsAtCompileTime)) && (!(RowsAtCompileTime==Dynamic && MaxRowsAtCompileTime!=Dynamic) || (rows<=MaxRowsAtCompileTime)) && (!(ColsAtCompileTime==Dynamic && MaxColsAtCompileTime!=Dynamic) || (cols<=MaxColsAtCompileTime)) && rows>=0 && cols>=0 && "Invalid sizes when resizing a matrix or array."’
+```
+
+
+
+![image-20210805144848364](typora_image/image-20210805144848364.png)
+
+原因分析： 可能是该用动态数组的地方没有用，还需要仔细检查一下；根据错误内容，查找；
+
+查找到原因： 块求解器的大小应该设置成动态的；可能和版本有关系？未知；
+
+解决办法：
+
+将：BlockSolverType->g2o::BlockSolverX
+
+```cpp
+        typedef g2o::BlockSolver_6_3  BlockSolverType;
+        typedef g2o::LinearSolverDense<BlockSolverType::PoseMatrixType> LinearSolverType;
+        auto solver = new   g2o::OptimizationAlgorithmLevenberg(
+                                                        g2o::make_unique<BlockSolverType>(
+                                                                g2o::make_unique<LinearSolverType>()
+                                                        )
+                                                );
+```
+
+替换为：
+
+```cpp
+        typedef g2o::LinearSolverCSparse<g2o::BlockSolverX::PoseMatrixType> LinearSolverType;
+        auto solver = new   g2o::OptimizationAlgorithmLevenberg(
+                                                        g2o::make_unique<g2o::BlockSolverX>(
+                                                                g2o::make_unique<LinearSolverType>()
+                                                        )
+                                                );
+```
+
+参考： https://blog.csdn.net/ziliwangmoe/article/details/88717477
+
+
+
+### g2o 优化结束的时候出现问题
+
+```cpp
+I20210805 15:59:17.521359 28966 tracker.cc:298]  D->INFO: tracker status is good 
+I20210805 15:59:17.559370 28965 optimizer.cc:461]  D->INFO: backend optimize finished , Outlier / Inlier : 20 / 1210
+
+Thread 3 "run_vo" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7fffe3fff700 (LWP 28965)]
+0x0000000000000021 in ?? ()
+(gdb) 
+(gdb) where
+#0  0x0000000000000021 in  ()
+#1  0x00007ffff58f83d2 in g2o::HyperGraph::clear() () at /usr/local/lib/libg2o_core.so
+#2  0x00007ffff5902ea4 in g2o::OptimizableGraph::~OptimizableGraph() () at /usr/local/lib/libg2o_core.so
+#3  0x00007ffff7911eae in OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::backend_optimize() (this=0x5555557ed460)
+    at /home/snowden/workplace/OpticalFlow_SLAM/OpticalFlow_SLAM/algorithm/module/src/optimizer.cc:251
+#4  0x00007ffff7910030 in OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::back_end_loop() (this=0x5555557ed460)
+    at /home/snowden/workplace/OpticalFlow_SLAM/OpticalFlow_SLAM/algorithm/module/src/optimizer.cc:157
+#5  0x00007ffff791f428 in std::__invoke_impl<void, void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*&)(), OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*&>(std::__invoke_memfun_deref, void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*&)(), OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*&) (__f=@0x5555557ed4d8: (void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*)(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer * const)) 0x7ffff790fd0c <OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::back_end_loop()>, __t=@0x5555557ed4e8: 0x5555557ed460)
+    at /usr/include/c++/7/bits/invoke.h:73
+#6  0x00007ffff791e4be in std::__invoke<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*&)(), OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*&>(void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*&)(), OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*&) (__fn=@0x5555557ed4d8: (void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*)(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer * const)) 0x7ffff790fd0c <OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::back_end_loop()>) at /usr/include/c++/7/bits/invoke.h:95
+#7  0x00007ffff791ccdd in std::_Bind<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*))()>::__call<void, , 0ul>(std::tuple<>&&, std::_Index_tuple<0ul>) (this=0x5555557ed4d8, __args=...)
+    at /usr/include/c++/7/functional:467
+#8  0x00007ffff791aa47 in std::_Bind<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*))()>::operator()<, void>() (this=0x5555557ed4d8) at /usr/include/c++/7/functional:551
+#9  0x00007ffff79188f5 in std::__invoke_impl<void, std::_Bind<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*))()>>(std::__invoke_other, std::_Bind<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*))()>&&) (__f=...)
+    at /usr/include/c++/7/bits/invoke.h:60
+#10 0x00007ffff791700b in std::__invoke<std::_Bind<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*))()>>(std::_Bind<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*))()>&&) (__fn=...) at /usr/include/c++/7/bits/invoke.h:95
+#11 0x00007ffff792a06e in std::thread::_Invoker<std::tuple<std::_Bind<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*))()> > >::_M_invoke<0ul>(std::_Index_tuple<0ul>) (this=0x5555557ed4d8) at /usr/include/c++/7/thread:234
+#12 0x00007ffff7926826 in std::thread::_Invoker<std::tuple<std::_Bind<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*))()> > >::operator()() (this=0x5555557ed4d8)
+    at /usr/include/c++/7/thread:243
+#13 0x00007ffff7922d92 in std::thread::_State_impl<std::thread::_Invoker<std::tuple<std::_Bind<void (OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::*(OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer*))()> > > >::_M_run() (this=0x5555557ed4d0)
+    at /usr/include/c++/7/thread:186
+#14 0x00007ffff61fa6df in  () at /usr/lib/x86_64-linux-gnu/libstdc++.so.6
+#15 0x00007ffff1c796db in start_thread (arg=0x7fffe3fff700) at pthread_create.c:463
+#16 0x00007ffff5c5571f in clone () at ../sysdeps/unix/sysv/linux/x86_64/clone.S:95
+(gdb) 
+
+```
+
+HyperGraph::clear() 的具体实现；
+
+```cpp
+  void HyperGraph::clear()
+  {
+#if G2O_DELETE_IMPLICITLY_OWNED_OBJECTS
+    for (VertexIDMap::iterator it=_vertices.begin(); it!=_vertices.end(); ++it)
+      delete (it->second);
+    for (EdgeSet::iterator it=_edges.begin(); it!=_edges.end(); ++it)
+      delete (*it);
+#endif
+
+    _vertices.clear();
+    _edges.clear();
+  }
+```
+
+猜测原因：
+
+可能是由于在新建节点的时候使用的是share_ptr 来指向新的节点造成的；使用share_ptr 指向的对象不能通过delete 来删除？
+
+解决办法： 将所有涉及到顶点和边的对象都设置为原始指针，而不是使用智能指针；
+
+
+
+### unique_lock 错误
+
+```
+I20210805 16:56:02.544169 12210 tracker.cc:294]  D->INFO: Frame:  3  timestamp : 0.312729  Tracked 346
+I20210805 16:56:02.544179 12210 tracker.cc:298]  D->INFO: tracker status is good 
+
+Thread 3 "run_vo" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7fffe3fff700 (LWP 12209)]
+__GI___pthread_mutex_lock (mutex=0x68) at ../nptl/pthread_mutex_lock.c:67
+67	../nptl/pthread_mutex_lock.c: 没有那个文件或目录.
+(gdb) where
+#0  0x00007ffff1c82fd0 in __GI___pthread_mutex_lock (mutex=0x68) at ../nptl/pthread_mutex_lock.c:67
+#1  0x00007ffff77a7f13 in __gthread_mutex_lock(__gthread_mutex_t*) (__mutex=0x68)
+    at /usr/include/x86_64-linux-gnu/c++/7/bits/gthr-default.h:748
+#2  0x00007ffff77a8648 in std::mutex::lock() (this=0x68) at /usr/include/c++/7/bits/std_mutex.h:103
+#3  0x00007ffff77a8f5d in std::unique_lock<std::mutex>::lock() (this=0x7fffe3ff6c50) at /usr/include/c++/7/bits/std_mutex.h:267
+#4  0x00007ffff77a8bde in std::unique_lock<std::mutex>::unique_lock(std::mutex&) (this=0x7fffe3ff6c50, __m=...)
+    at /usr/include/c++/7/bits/std_mutex.h:197
+#5  0x00007ffff77a8590 in OpticalFlow_SLAM_algorithm_opticalflow_slam::Feature2d::get_frame_linked() (this=0x0)
+    at /home/snowden/workplace/OpticalFlow_SLAM/OpticalFlow_SLAM/algorithm/base_component/src/feature2d.cc:95
+#6  0x00007ffff79122d0 in OpticalFlow_SLAM_algorithm_opticalflow_slam::Optimizer::backend_optimize() (this=0x5555557ed460)
+    at /home/snowden/workplace/OpticalFlow_SLAM/OpticalFlow_SLAM/algorithm/module/src/optimizer.cc:335
+
+```
+
+
+
+### 删除错误： 
+
+```
+I20210805 17:03:48.490517 14304 tracker.cc:837]  D->INFO:  insert_mappoints : 242
+I20210805 17:03:48.490527 14304 map.cc:39]  D->INFO:   before erase , dsp_actived_mappoints_  num : 405
+
+Thread 4 "run_vo" received signal SIGSEGV, Segmentation fault.
+[Switching to Thread 0x7fffe7aa1700 (LWP 14304)]
+0x00007ffff77a66bb in __gnu_cxx::__exchange_and_add (__mem=0x4026170b8cfbfc6d, __val=-1)
+    at /usr/include/c++/7/ext/atomicity.h:49
+49	  { return __atomic_fetch_add(__mem, __val, __ATOMIC_ACQ_REL); }
+(gdb) where
+#0  0x00007ffff77a66bb in __gnu_cxx::__exchange_and_add(_Atomic_word volatile*, int) (__mem=0x4026170b8cfbfc6d, __val=-1)
+    at /usr/include/c++/7/ext/atomicity.h:49
+#1  0x00007ffff77a6752 in __gnu_cxx::__exchange_and_add_dispatch(_Atomic_word*, int) (__mem=0x4026170b8cfbfc6d, __val=-1)
+    at /usr/include/c++/7/ext/atomicity.h:82
+#2  0x00007ffff77a74e7 in std::_Sp_counted_base<(__gnu_cxx::_Lock_policy)2>::_M_release() (this=0x4026170b8cfbfc65)
+    at /usr/include/c++/7/bits/shared_ptr_base.h:151
+#3  0x00007ffff77a7307 in std::__shared_count<(__gnu_cxx::_Lock_policy)2>::~__shared_count() (this=0x7fffd9a98348, __in_chrg=<optimized out>) at /usr/include/c++/7/bits/shared_ptr_base.h:684
+#4  0x00007ffff77a87c8 in std::__shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d, (__gnu_cxx::_Lock_policy)2>::~__shared_ptr() (this=0x7fffd9a98340, __in_chrg=<optimized out>) at /usr/include/c++/7/bits/shared_ptr_base.h:1123
+#5  0x00007ffff77a87e4 in std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>::~shared_ptr() (this=0x7fffd9a98340, __in_chrg=<optimized out>) at /usr/include/c++/7/bits/shared_ptr.h:93
+#6  0x00007ffff790eaff in std::_Destroy<std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d> >(std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*) (__pointer=0x7fffd9a98340)
+    at /usr/include/c++/7/bits/stl_construct.h:98
+#7  0x00007ffff790daf0 in std::_Destroy_aux<false>::__destroy<std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*>(std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*, std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*) (__first=0x7fffd9a98340, __last=0x7fffd9a98540) at /usr/include/c++/7/bits/stl_construct.h:108
+#8  0x00007ffff790be02 in std::_Destroy<std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*>(std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*, std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*) (__first=0x7fffd9a98340, __last=0x7fffd9a98540) at /usr/include/c++/7/bits/stl_construct.h:137
+#9  0x00007ffff790a0db in std::_Destroy<std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*, std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d> >(std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*, std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d>*, std::allocator<std::shared_ptr<OpticalFlow_SLAM_algorithm_opticalflow_slam::Mappoint3d> >&) (__first=0x7fffd9a98340, __last=0x7fffd9a98540)
+
+```
+
+出错位置： 在删除被激活的地图点的时候出错，可能是因为地图点被不同的关键帧关联了，在帧弹出后，另一帧还在关联着已经被删除的地图点，而这一帧再弹出时，就会删除空指针，所以这里需要改变一下删除策略，目前一个想法是标记每个地图点的所有者，这里删除的时候，只删除所有者的，但是也是存在问题，后面的关键帧就没有办法关联这个地图点了，所以，解决办法应该是删除观测者只有本帧的地图点；
