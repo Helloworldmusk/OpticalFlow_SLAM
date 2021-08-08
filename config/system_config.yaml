@@ -14,5 +14,5 @@ features.tracking_min_threshold: 150
 
 #mappoint
 mappoint.init_min_threshold: 50
-mappoint.need_insert_keyframe_min_threshold: 60
+mappoint.need_insert_keyframe_min_threshold: 10
 

@@ -3,3 +3,4 @@ build/*
 bin/run_vo
 lib/*
 lib/libop_slam.so
+lib/libop_slam.so

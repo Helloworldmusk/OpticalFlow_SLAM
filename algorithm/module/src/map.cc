@@ -53,7 +53,31 @@ bool Map::add_keyframe(std::shared_ptr<KeyFrame> sp_keyframe)
         for(auto p : sp_keyframe->sp_frame_->vsp_left_feature_)
         {
                 if(nullptr != p->get_mappoint3d_linked())
-                dsp_actived_mappoints_.push_back(p->get_mappoint3d_linked());
+                {
+                        //TODO(snowden)[mid] : the follow loop just for debug, can be deleted;
+                        int64_t counter = 0;
+                        for ( auto e : p->get_mappoint3d_linked()->vwp_observers_)
+                        {
+                                if(nullptr == e.lock())
+                                {
+                                        DLOG_INFO << "feature id "  << p->id_ << " linked mappoint 's observers is null ?? " << std::endl;
+                                        DLOG_INFO << "p->get_mappoint3d_linked()->vwp_observers_.size()"  << p->get_mappoint3d_linked()->vwp_observers_.size() << std::endl;
+                                        exit(0);
+                                }
+                                else if(p == e.lock())
+                                {
+                                        dsp_actived_mappoints_.push_back(p->get_mappoint3d_linked());
+                                }
+                                else
+                                {
+                                     counter++;   
+                                }
+                        }
+                        if(counter == p->get_mappoint3d_linked()->vwp_observers_.size())
+                        {
+                                DLOG_INFO << "feature id : " << p->id_ << "linked with mappoint ,but mappoint not be observed by feature" << std::endl;
+                        }
+                }
         }
         actived_mappoints_lock_.unlock();
         DLOG_INFO << "dsp_actived_keyframes_.size()" <<dsp_actived_keyframes_.size()<<std::endl;

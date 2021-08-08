@@ -301,15 +301,15 @@ Optimizer::BackEndStatus Optimizer::backend_optimize()
         }
         DLOG_INFO << "optimizer : vsp_pose_vertex size : " << vsp_pose_vertex.size() << std::endl;
                 //vertex_mappoint;
-        // std::deque<std::shared_ptr<Mappoint3d>> wp_map_.lock()->get_actived_mappoints() = wp_map_.lock()->get_actived_mappoints(); 
+        std::deque<std::shared_ptr<Mappoint3d>> dsp_actived_mappoints = wp_map_.lock()->get_actived_mappoints(); 
         std::vector<VertexMappoint*> vsp_mappoint_vertex;
-        int64_t actived_mappoint_size = wp_map_.lock()->get_actived_mappoints().size();
+        int64_t actived_mappoint_size = dsp_actived_mappoints.size();
         for(int j { 0 }; j < actived_mappoint_size; j++ )
         {
                 VertexMappoint* new_mappoint_vertex = new VertexMappoint();
                 new_mappoint_vertex->setId(vertex_index);
                 vertex_index++;
-                new_mappoint_vertex->setEstimate(wp_map_.lock()->get_actived_mappoints()[j]->get_position3d());
+                new_mappoint_vertex->setEstimate(dsp_actived_mappoints[j]->get_position3d());
                 optimizer.addVertex(new_mappoint_vertex);
                 vsp_mappoint_vertex.push_back(new_mappoint_vertex);
         }
@@ -322,15 +322,20 @@ Optimizer::BackEndStatus Optimizer::backend_optimize()
         const double_t kChi2Threshold { 5.991 };
         std::vector<EdgePoseMappoint*> vsp_pose_mappoint_edge;
         std::map<EdgePoseMappoint*, std::shared_ptr<Feature2d>> msp_edge_feature2d;
+        /**
+         *@warning build edge between mappoint and it's observer, but due to the some mappoint have duplicate, so many edge is same,
+         * so, this is need modified
+         */
+        //TODO(snowden)[high] : to delete duplicate before optimize;  
         for(int n { 0 }; n < actived_mappoint_size; n++)
         {
-                for( auto observer : wp_map_.lock()->get_actived_mappoints()[n]->vwp_observers_)
+                for( auto observer : dsp_actived_mappoints[n]->vwp_observers_)
                 {
                         for(int m { 0 }; m < actived_frame_size; m++)
                         {
                                 if( nullptr == observer.lock())
                                 {
-                                        DLOG_INFO << "observer.lock()->get_frame_linked()  is null " << std::endl;
+                                        DLOG_INFO << "dsp_actived_mappoints[n]->vwp_observers_[n]  is null " << std::endl;
                                         continue;
                                 }
                                 if(observer.lock()->get_frame_linked().lock()->id_ == dsp_actived_keyframes[m]->sp_frame_->id_)
@@ -391,9 +396,9 @@ Optimizer::BackEndStatus Optimizer::backend_optimize()
                 dsp_actived_keyframes[i]->sp_frame_->set_left_pose(vsp_pose_vertex[2 * i]->estimate());
                 dsp_actived_keyframes[i]->sp_frame_->set_right_pose(SE3(vsp_pose_vertex[2 * i + 1]->estimate().so3(),sp_camera_config_->base_line));
         }
-        for(int j { 0 }; j < wp_map_.lock()->get_actived_mappoints().size(); j++)
+        for(int j { 0 }; j < dsp_actived_mappoints.size(); j++)
         {
-                wp_map_.lock()->get_actived_mappoints()[j]->set_position3d(vsp_mappoint_vertex[j]->estimate());
+                dsp_actived_mappoints[j]->set_position3d(vsp_mappoint_vertex[j]->estimate());
         }
         
         //mark and delelte outlier;
@@ -436,24 +441,27 @@ Optimizer::BackEndStatus Optimizer::backend_optimize()
                 {
                         x.second->is_outline_ = true;
                         //delete link from mappoint -> feature;
-                                //TODO(snowden)[high]: why  we get nullptr ? 
+                                /**
+                                 * bucause dsp_actived_mappoints has many duplicate mappoints, so ,same feature is add many time to 
+                                 * msp_edge_feature, so if you delete link first, you will get nullptr when you try to delete link again
+                                 *  this will be repaired when delete the duplicate before emplace mappoint to dsp_actived_mappoints;
+                                 */ 
                         if (nullptr ==  x.second->get_mappoint3d_linked())
                         {
-                                DLOG_INFO << "x.second->get_mappoint3d_linked()  is null " << std::endl;
+                                // DLOG_INFO << "x.second->get_mappoint3d_linked()  is null " << std::endl;
                                 continue;
                         }
-                        DLOG_INFO << " need delete mappoint id : " <<  x.second->get_mappoint3d_linked()->id_ << std::endl;  //->vwp_observers_[0].lock()->id_ << std::endl;;
-                        for(int i { 0 }; i < x.second->get_mappoint3d_linked()->vwp_observers_.size(); i++)
+                        for(auto it =   x.second->get_mappoint3d_linked()->vwp_observers_.begin(); it < x.second->get_mappoint3d_linked()->vwp_observers_.end(); it++)
                         {
                                 //TODO(snowden)[high]: why  we get nullptr ? 
-                                if (nullptr ==  x.second->get_mappoint3d_linked()->vwp_observers_[i].lock())
+                                if (nullptr ==  (*it).lock())
                                 {
                                         DLOG_INFO << "x.second->get_mappoint3d_linked()->vwp_observers_[i]  is null " << std::endl;
                                         continue;
                                 }
-                                if (x.second->get_mappoint3d_linked()->vwp_observers_[i].lock()->id_ == x.second->id_)
+                                if (x.second == (*it).lock())
                                 {
-                                        x.second->get_mappoint3d_linked()->vwp_observers_[i] = std::shared_ptr<Feature2d>(nullptr);
+                                        x.second->get_mappoint3d_linked()->vwp_observers_.erase(it);
                                         break;
                                 }
                         }

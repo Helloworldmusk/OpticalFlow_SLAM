@@ -583,6 +583,8 @@ int64_t Tracker::init_map()
                 //  DLOG_INFO << " ######### point3d: "  << points_3d << std::endl;
                  std::shared_ptr<Mappoint3d> new_mappoint = std::shared_ptr<Mappoint3d>(new Mappoint3d(sp_current_frame_->timestamp_, points_3d));
                  CHECK_NOTNULL(new_mappoint);
+                 CHECK_NOTNULL(sp_current_frame_->vsp_left_feature_[i]);
+                 CHECK_NOTNULL(sp_current_frame_->vsp_right_feature_[i]);
                  new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_left_feature_[i]);
                  new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_right_feature_[i]);
                  sp_current_frame_->vsp_left_feature_[i]->set_mappoint3d_linked(new_mappoint);
@@ -645,7 +647,6 @@ int64_t Tracker::track_feature_in_current_image()
         std::vector<uchar> status;
         cv::Mat error;
         int64_t good_point_counter = 0;
-        
         cv::calcOpticalFlowPyrLK(sp_last_frame_->left_image_, sp_current_frame_->left_image_, 
                                                               v_last_keypoints, v_current_keypoints, status, error); 
         for (size_t i = 0; i < status.size(); i++)
@@ -654,12 +655,14 @@ int64_t Tracker::track_feature_in_current_image()
                 {
                         std::shared_ptr<Feature2d> feature 
                                 = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_current_keypoints[i].x, v_current_keypoints[i].y)));
+                        CHECK_NOTNULL(feature);
                         feature->is_left_ = true;
                         feature->set_frame_linked(sp_current_frame_);
-                        // DLOG_INFO<< " current frame id : " << sp_current_frame_->id_<< " feature->get_frame_linked()->id_ " <<feature->get_frame_linked()->id_ << std::endl;
-                        feature->set_mappoint3d_linked(sp_last_frame_->vsp_left_feature_[i]->get_mappoint3d_linked());
-                        if(nullptr !=  feature->get_mappoint3d_linked())
+                        
+                        std::shared_ptr<Mappoint3d>mappoint_linked = sp_last_frame_->vsp_left_feature_[i]->get_mappoint3d_linked();
+                        if(nullptr != mappoint_linked)
                         {
+                                feature->set_mappoint3d_linked(mappoint_linked);
                                 feature->get_mappoint3d_linked()->vwp_observers_.push_back(feature);
                         }
                         sp_current_frame_->vsp_left_feature_.push_back(feature);
@@ -816,6 +819,9 @@ int64_t Tracker::insert_mappoints()
                  counter++;
                 //  DLOG_INFO << " ######### point3d: "  << points_3d << std::endl;
                  std::shared_ptr<Mappoint3d> new_mappoint = std::shared_ptr<Mappoint3d>(new Mappoint3d(sp_current_frame_->timestamp_, points_3d));
+                 CHECK_NOTNULL(new_mappoint);
+                 CHECK_NOTNULL(sp_current_frame_->vsp_left_feature_[i]);
+                 CHECK_NOTNULL(sp_current_frame_->vsp_right_feature_[i]);
                  new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_left_feature_[i]);
                  new_mappoint->vwp_observers_.push_back(sp_current_frame_->vsp_right_feature_[i]);
                  sp_current_frame_->vsp_left_feature_[i]->set_mappoint3d_linked(new_mappoint);
