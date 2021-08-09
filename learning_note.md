@@ -1355,3 +1355,16 @@ weak_ptr 指针被赋值时，不能使用lock();
      正确的应该是ptr = x;
 ```
 
+
+
+使用输出流到文件；
+
+```cpp
+ofstream myout("/Users/TNC/Desktop/codebase/traincascade/traincascade/bg.txt");
+for(int i=1; i<=3900; i++)
+{
+    myout<< "bg/" << i << ".jpg" << endl;
+}
+myout.close();
+原文链接：https://blog.csdn.net/sazass/article/details/92833146
+```

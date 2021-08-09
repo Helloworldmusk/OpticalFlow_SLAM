@@ -87,6 +87,10 @@ void OP_SLAM::opticalflow_slam_loop()
                                 {
                                         LOG_ERROR << " save map failed , please check " << std::endl;
                                 }
+                                if(!save_trajectory())
+                                {
+                                        LOG_ERROR << "save trajectory failed , please check" << std::endl;
+                                }
                                 set_status(OP_SLAM_STATUS::FINISHED);
                                 break;
                         }
@@ -190,7 +194,52 @@ bool OP_SLAM::run()
  */
 bool OP_SLAM::save_map()
 {
-        SHOW_FUNCTION_INFO
+        std::vector<std::shared_ptr<Mappoint3d>> all_mappoint { sp_map_->get_mappoints() };
+        std::ofstream map_file(save_map_path_ + "/map.obj");
+        map_file.clear();
+        if (!map_file.is_open())
+        {
+                DLOG_ERROR << " save map file open failed " << std::endl;
+        }
+        DLOG_INFO << " ready to save map " << std::endl;
+        map_file << "mtllib obj.mtl" << std::endl << std::endl;
+        for(auto v : all_mappoint)
+        {
+                map_file << "v " <<  v->get_position3d()(0) << " " <<v->get_position3d()(1) << " " << v->get_position3d()(2)  << std::endl;
+        }
+        map_file.close();
+        DLOG_INFO << " save map finished, please use meshlab to check it " << std::endl;
+        return true;
+}
+
+
+/**
+ * @brief save trajectory in save_map_path files;
+ * @author snowden
+ * @date 2021-08-09
+ * @version 1.0
+ */
+bool OP_SLAM::save_trajectory()
+{
+        std::vector<std::shared_ptr<Frame>>  all_frame { sp_map_->get_frames() };
+        std::ofstream trajectory_file(save_map_path_ + "/trajectory.txt");
+        trajectory_file.clear();
+        if(!trajectory_file.is_open())
+        {
+                DLOG_ERROR << " open trajecotry.txt failed " << std::endl;
+        }
+        DLOG_INFO << " ready to save trajectory " << std::endl;
+        SE3 pose;
+        for(int i { 0 }; i < all_frame.size(); i++)
+        {
+                pose = all_frame[i]->get_left_pose().inverse();
+                trajectory_file << pose.matrix()(0,0) << " " << pose.matrix()(0,1) << " " << pose.matrix()(0,2) << " " << pose.matrix()(0,3) << " " 
+                                              << pose.matrix()(1,0) << " " << pose.matrix()(1,1) << " " << pose.matrix()(1,2) << " " << pose.matrix()(1,3) << " " 
+                                              << pose.matrix()(2,0) << " " << pose.matrix()(2,1) << " " << pose.matrix()(2,2) << " " << pose.matrix()(2,3) 
+                                              << std::endl;                           
+        }
+        trajectory_file.close();
+        DLOG_INFO << " save trajectory finished , please use evo to check it" << std::endl;
         return true;
 }
 

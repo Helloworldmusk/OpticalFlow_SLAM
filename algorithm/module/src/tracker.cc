@@ -162,7 +162,7 @@ void Tracker::front_end_loop()
                                 auto end_time =  std::chrono::steady_clock::now();                               
                                 if (FrontEndStatus::TRACKING == status)
                                 {
-                                        notify_all_updated_map();
+                                        // notify_all_updated_map();
                                         auto time_used = std::chrono::duration_cast<std::chrono::duration<double_t>>(end_time - start_time);
                                         if( sp_slam_config_->per_frame_process_time - time_used.count()*1000.0 > 0)
                                         {
@@ -209,8 +209,9 @@ void Tracker::front_end_loop()
                                 DLOG_INFO << " FrontEndStatus::FINISHED " << std::endl;
                                 notify_all_updated_map();
                                 //reserve a little time for back_end to deal with last frame;
-                                std::this_thread::sleep_for(std::chrono::milliseconds(300));
-                                // notify_all_tracker_finished();
+                                std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+                                notify_all_tracker_finished();
+                                std::this_thread::sleep_for(std::chrono::milliseconds(3000));
                                 break;
                         }
                         case FrontEndStatus::UNKNOW:
@@ -269,18 +270,23 @@ Tracker::FrontEndStatus Tracker::tracking()
         // estimate current coarse  pose;
         
         sp_current_frame_ = get_a_frame();
-        if(nullptr ==  sp_current_frame_)
+        if(1500 ==  sp_current_frame_->id_)
         {
                 DLOG_WARNING << " tracking finished " << std::endl;
                 return FrontEndStatus::FINISHED;
         }
+        // if(nullptr ==  sp_current_frame_)
+        // {
+        //         DLOG_WARNING << " tracking finished " << std::endl;
+        //         return FrontEndStatus::FINISHED;
+        // }
         if(wp_viewer_.lock())
         {
                 wp_viewer_.lock()->wp_current_frame_ = sp_current_frame_;
         }
         SE3 frame_pose = relative_motion_ * sp_last_frame_->get_left_pose();
         sp_current_frame_->set_left_pose(frame_pose);
-        sp_current_frame_->set_right_pose(SE3(frame_pose.so3(),sp_camera_config_->base_line));
+        sp_current_frame_->set_right_pose(SE3(SO3(),sp_camera_config_->base_line) * frame_pose);
         // track point in current frame'left image;
         int64_t tracked_num = track_feature_in_current_image();
         if(tracked_num < sp_slam_config_->mappoint_need_insert_keyframe_min_threshold)
@@ -322,6 +328,7 @@ Tracker::FrontEndStatus Tracker::tracking()
                 status = FrontEndStatus::LOST;
         }
         wp_map_.lock()->add_frame(sp_current_frame_); 
+        // DLOG_INFO << "Frame id : " << sp_current_frame_->id_ << " pose : " << std::endl << sp_current_frame_->get_left_pose().matrix().inverse() << std::endl;
         // viewer show;
         return status;
 }
@@ -335,8 +342,8 @@ Tracker::FrontEndStatus Tracker::tracking()
  */
 bool Tracker::insert_keyframe()
 {
-        SE3 right_pose = SE3(sp_current_frame_->get_left_pose().so3(), sp_current_frame_->get_left_pose().translation() +  sp_camera_config_->base_line);
-        sp_current_frame_->set_right_pose(right_pose);
+        // SE3 right_pose = SE3(sp_current_frame_->get_left_pose().so3(), sp_current_frame_->get_left_pose().translation() +  sp_camera_config_->base_line);
+        sp_current_frame_->set_right_pose(SE3(SO3(),sp_camera_config_->base_line) * sp_current_frame_->get_left_pose() );
         if (detect_left_image_features() < sp_slam_config_->features_init_min_threshold) { return false; }
         if (track_feature_in_right_image() < sp_slam_config_->features_init_min_threshold) { return false; }
         if (insert_mappoints() < sp_slam_config_->mappoint_init_min_threshold) { return false; }
@@ -475,7 +482,9 @@ int64_t Tracker::detect_left_image_features()
         //        DLOG_INFO<< " current frame id : " << sp_current_frame_->id_<< std::endl;
         //        DLOG_INFO<< " feature->get_frame_linked()->id_ " <<feature->get_frame_linked()->id_ << std::endl;
                sp_current_frame_->vsp_left_feature_.push_back(feature);
-               cv::circle(sp_current_frame_->left_image_, keypoint.pt, 3, cv::Scalar(255,255,255));
+               cv::circle(sp_current_frame_->left_image_, keypoint.pt, 3, cv::Scalar(255,0,0));
+               cv::imshow("image",sp_current_frame_->left_image_);
+               cv::waitKey(1);
         }
         DLOG_INFO << " keypoints size() : " << keypoints.size() << std::endl;
         //  cv::imshow("rectangle frame", mask);
@@ -519,7 +528,9 @@ int64_t Tracker::track_feature_in_right_image()
         cv::Mat error;
         int64_t good_point_counter = 0;
         cv::calcOpticalFlowPyrLK(sp_current_frame_->left_image_, sp_current_frame_->right_image_, 
-                                                              v_left_keypoints, v_right_keypoints, status, error); 
+                                                              v_left_keypoints, v_right_keypoints, status, error, cv::Size(11, 11), 3,
+                                                              cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 0.01),
+                                                              cv::OPTFLOW_USE_INITIAL_FLOW); 
         for (size_t i = 0; i < status.size(); i++)
         {
                 if (status[i])
@@ -562,6 +573,8 @@ int64_t Tracker::init_map()
         Vec3 points_3d;
         int64_t counter  { 0 };
         int64_t bad_triangluated_point_num { 0 };
+        //clear all mappoint;
+        wp_map_.lock()->get_mappoints().clear();
          if(wp_viewer_.lock())
          {
                  wp_viewer_.lock()->vsp_mappoints_.clear();
@@ -648,7 +661,9 @@ int64_t Tracker::track_feature_in_current_image()
         cv::Mat error;
         int64_t good_point_counter = 0;
         cv::calcOpticalFlowPyrLK(sp_last_frame_->left_image_, sp_current_frame_->left_image_, 
-                                                              v_last_keypoints, v_current_keypoints, status, error); 
+                                                              v_last_keypoints, v_current_keypoints, status, error, cv::Size(11, 11), 3,
+                                                              cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 0.01),
+                                                              cv::OPTFLOW_USE_INITIAL_FLOW); 
         for (size_t i = 0; i < status.size(); i++)
         {
                 if (status[i])
@@ -667,8 +682,11 @@ int64_t Tracker::track_feature_in_current_image()
                         }
                         sp_current_frame_->vsp_left_feature_.push_back(feature);
                         good_point_counter++;
+                        cv::circle(sp_current_frame_->left_image_, v_current_keypoints[i], 3, cv::Scalar(0,255,0));
                 }
         }
+        cv::imshow("image",sp_current_frame_->left_image_);
+        cv::waitKey(1);
         DLOG_INFO << " last frmae  : no_mappoint3d_linked_feature : " << no_mappoint3d_linked_feature << std::endl;
         DLOG_INFO << " not be tracked in current image : mappoints num : " << status.size() -  good_point_counter << std::endl;
         return good_point_counter;
@@ -765,10 +783,7 @@ int64_t Tracker::estimate_current_pose()
         DLOG_INFO <<  "  no_mappoint3d_linked_feature2d_num : " << no_mappoint3d_linked_feature2d_num << std::endl;
         DLOG_INFO <<  "  outlier / feature size : " << outlier_cnt << " / " << vsp_feature2ds.size() << std::endl;
         sp_current_frame_->set_left_pose(pose_vertex->estimate());
-        sp_current_frame_->set_right_pose(SE3(pose_vertex->estimate().so3(),sp_camera_config_->base_line));
-
-
-
+        sp_current_frame_->set_right_pose( SE3(SO3(),sp_camera_config_->base_line) * pose_vertex->estimate() );
 
         for(auto &feature : vsp_feature2ds)
         {
@@ -805,7 +820,9 @@ int64_t Tracker::insert_mappoints()
         int64_t bad_triangluated_point_num { 0 };
         for (int i = 0; i < sp_current_frame_->vsp_left_feature_.size(); i++)
         {
+                //pass feature's not matched feature and have linked other mappoint ;
                 if(nullptr ==  sp_current_frame_->vsp_right_feature_[i]) { continue; }
+                if(nullptr != sp_current_frame_->vsp_left_feature_[i]->get_mappoint3d_linked()) { continue; }
                 normalized_left_point = CoordinateTransformImageToNormalizedPlane(sp_current_frame_->vsp_left_feature_[i]->position2d_, 
                                                                                                                                                                       sp_camera_config_->K_left);
                 normalized_right_point = CoordinateTransformImageToNormalizedPlane(sp_current_frame_->vsp_right_feature_[i]->position2d_, 
@@ -817,7 +834,13 @@ int64_t Tracker::insert_mappoints()
                         continue;
                 }
                  counter++;
-                //  DLOG_INFO << " ######### point3d: "  << points_3d << std::endl;
+                 //change reference coordinate to world coor;
+                 Vec3 world_points_3d = sp_current_frame_->get_left_pose().inverse() * points_3d;
+                //  DLOG_INFO << " #########camera point3d: "  << std::endl <<  points_3d << std::endl;
+                //  DLOG_INFO << " #########world point3d: "  << std::endl  << world_points_3d << std::endl;
+                //  DLOG_INFO << "left pose : " << std::endl <<  sp_current_frame_->get_left_pose().matrix() << std::endl;
+                //  DLOG_INFO << "right pose : " << std::endl <<  sp_current_frame_->get_right_pose().matrix() << std::endl;
+                //  DLOG_INFO << "baseline " << std::endl << sp_camera_config_->base_line << std::endl;
                  std::shared_ptr<Mappoint3d> new_mappoint = std::shared_ptr<Mappoint3d>(new Mappoint3d(sp_current_frame_->timestamp_, points_3d));
                  CHECK_NOTNULL(new_mappoint);
                  CHECK_NOTNULL(sp_current_frame_->vsp_left_feature_[i]);

@@ -35,7 +35,7 @@ class Map {
         bool add_mappoint(std::shared_ptr<Mappoint3d> sp_mappoint);
         std::vector<std::shared_ptr<Frame>> get_frames();
         std::vector<std::shared_ptr<KeyFrame>> get_keyframes();
-        std::vector<std::shared_ptr<Mappoint3d>>get_mappoints();
+        std::vector<std::shared_ptr<Mappoint3d>> get_mappoints();
         std::deque<std::shared_ptr<KeyFrame>> get_actived_keyframes();
         std::deque<std::shared_ptr<Mappoint3d>> get_actived_mappoints();
 

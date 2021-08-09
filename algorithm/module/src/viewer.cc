@@ -109,8 +109,8 @@ bool Viewer::update_viewer(pangolin::OpenGlRenderState& camera, pangolin::View& 
         draw_frame(sp_tracker_->sp_current_frame_->get_left_pose(), kGreenColor_);
         draw_mappoints(KRedColor_);
         // draw_image(wp_current_frame_.lock()->left_image_,  camera, imgTexture, image_displayer);
-        cv::imshow("view image ",wp_current_frame_.lock()->left_image_);
-        cv::waitKey(1);
+        // cv::imshow("view image ",wp_current_frame_.lock()->left_image_);
+        // cv::waitKey(1);
         follow_frame(sp_tracker_->sp_current_frame_->get_left_pose(), camera);
 
 }

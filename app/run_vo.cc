@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
         std::string system_config_path = work_space_path + "config/system_config.yaml";
         std::string camera_config_path ="/media/snowden/TOSHIBAEXT/dataset/dataset/sequences/05/calib.txt";
         std::string data_set_path = "/media/snowden/TOSHIBAEXT/dataset/dataset/sequences/05";
-        std::string save_mat_path = "";
+        std::string save_mat_path = "/home/snowden/workplace/OpticalFlow_SLAM/OpticalFlow_SLAM";
         // std::cout << " current dir " << current_path() << std::endl;;
         std::unique_ptr<SLAM::OP_SLAM> op_slam { 
                 new SLAM::OP_SLAM(system_config_path, camera_config_path, data_set_path, save_mat_path)  };

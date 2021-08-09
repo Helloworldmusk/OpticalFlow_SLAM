@@ -56,6 +56,7 @@ class OP_SLAM {
         bool init();
         bool run();
         bool save_map();
+        bool save_trajectory();
         bool stop_slam();
         bool load_system_config();
         bool load_camera_config();
