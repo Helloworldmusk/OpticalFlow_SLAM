@@ -436,9 +436,9 @@ bool OP_SLAM::load_camera_config()
         sp_camera_config_->K_right << intrinsics_mat34[0], intrinsics_mat34[1], intrinsics_mat34[2],
                                                                           intrinsics_mat34[4], intrinsics_mat34[5], intrinsics_mat34[6],
                                                                           intrinsics_mat34[8], intrinsics_mat34[9], intrinsics_mat34[10];                                                
-        Vec3 fxb;
-        fxb << intrinsics_mat34[3], intrinsics_mat34[7], intrinsics_mat34[11];
-        sp_camera_config_->base_line = fxb / intrinsics_mat34[0];
+        Vec3 negative_fxb;
+        negative_fxb << intrinsics_mat34[3], intrinsics_mat34[7], intrinsics_mat34[11];
+        sp_camera_config_->base_line = negative_fxb / intrinsics_mat34[0];
         sp_camera_config_->fx_right = intrinsics_mat34[0];
         sp_camera_config_->fy_right = intrinsics_mat34[5];
         sp_camera_config_->cx_right = intrinsics_mat34[2];

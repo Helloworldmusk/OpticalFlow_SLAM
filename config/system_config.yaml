@@ -14,5 +14,6 @@ features.tracking_min_threshold: 150
 
 #mappoint
 mappoint.init_min_threshold: 50
-mappoint.need_insert_keyframe_min_threshold: 10
+#TODO(snowden)[high] : just for debug,  threshold need great 0;
+mappoint.need_insert_keyframe_min_threshold: -1
 

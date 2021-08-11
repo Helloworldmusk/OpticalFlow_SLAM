@@ -2,8 +2,8 @@ build/*
 .vscode/settings.json
 bin/run_vo
 lib/*
-lib/libop_slam.so
-lib/libop_slam.so
+map.obj
+trajectory.txt
 map.obj
 lib/libop_slam.so
-lib/libop_slam.so
+lib/*

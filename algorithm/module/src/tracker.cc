@@ -188,6 +188,7 @@ void Tracker::front_end_loop()
                                 {
                                         set_front_end_status(FrontEndStatus::LOST);
                                 }
+
                                 break;
                         }
                         case FrontEndStatus::LOST:
@@ -200,7 +201,7 @@ void Tracker::front_end_loop()
                         {
                                 DLOG_INFO << " FrontEndStatus::RESET " << std::endl;
                                 CHECK_EQ(reset(), true);
-                                std::this_thread::sleep_for(std::chrono::milliseconds(3000));
+                                std::this_thread::sleep_for(std::chrono::milliseconds(5000));
                                 set_front_end_status(FrontEndStatus::INITING);
                                 break;
                         }
@@ -270,7 +271,7 @@ Tracker::FrontEndStatus Tracker::tracking()
         // estimate current coarse  pose;
         
         sp_current_frame_ = get_a_frame();
-        if(1500 ==  sp_current_frame_->id_)
+        if(1000 ==  sp_current_frame_->id_)
         {
                 DLOG_WARNING << " tracking finished " << std::endl;
                 return FrontEndStatus::FINISHED;
@@ -592,6 +593,13 @@ int64_t Tracker::init_map()
                         bad_triangluated_point_num++;
                         continue;
                 }
+                //TODO(snowden)[high] : need use parameter rather than magic;
+                if ((points_3d(2) > 50) || (points_3d(2) < -50))
+                {
+                        DLOG_INFO << "reject triangulate due distance great limit" << std::endl;
+                        bad_triangluated_point_num++;
+                        continue;
+                }
                  counter++;
                 //  DLOG_INFO << " ######### point3d: "  << points_3d << std::endl;
                  std::shared_ptr<Mappoint3d> new_mappoint = std::shared_ptr<Mappoint3d>(new Mappoint3d(sp_current_frame_->timestamp_, points_3d));
@@ -830,6 +838,13 @@ int64_t Tracker::insert_mappoints()
                 if(!TriangulateNormalizedPoint(normalized_left_point, normalized_right_point, 
                                                                                   sp_current_frame_->get_left_pose(), sp_current_frame_->get_right_pose(), points_3d ))
                 {       
+                        bad_triangluated_point_num++;
+                        continue;
+                }
+                //TODO(snowden)[high] : need use parameter rather than magic;
+                if ((points_3d(2) > 300) || (points_3d(2) < 0))
+                {
+                        DLOG_INFO << "Reject triangulate due to distance great limitation , distance : " << points_3d(2) << std::endl;
                         bad_triangluated_point_num++;
                         continue;
                 }
