@@ -8,3 +8,5 @@ map.obj
 lib/libop_slam.so
 lib/*
 trajectory.txt
+lib/libop_slam.so
+trajectory.txt

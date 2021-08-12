@@ -59,7 +59,7 @@ Feature2d:: ~Feature2d()
  */
 void Feature2d::set_mappoint3d_linked(const std::shared_ptr<Mappoint3d>& mappoint3d)
 {
-        std::unique_lock<std::mutex> linked_mappoint3d_lock { linked_mappoint3d_mutex_ };
+        // std::unique_lock<std::mutex> linked_mappoint3d_lock { linked_mappoint3d_mutex_ };
         sp_mappiont3d_ = mappoint3d;
 }
 /**
@@ -70,7 +70,7 @@ void Feature2d::set_mappoint3d_linked(const std::shared_ptr<Mappoint3d>& mappoin
  */
 std::shared_ptr<Mappoint3d> Feature2d::get_mappoint3d_linked()
 {
-        std::unique_lock<std::mutex> linked_mappoint3d_lock { linked_mappoint3d_mutex_ };
+        // std::unique_lock<std::mutex> linked_mappoint3d_lock { linked_mappoint3d_mutex_ };
         return sp_mappiont3d_;
 }
 /**

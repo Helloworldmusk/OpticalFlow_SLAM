@@ -130,6 +130,7 @@ bool Tracker::set_front_end_status(const FrontEndStatus &new_status)
  */
 void Tracker::front_end_loop()
 {
+        auto front_end_loop_start_time =  std::chrono::steady_clock::now();
         while(is_running_)
         {
                 switch (get_front_end_status() )
@@ -164,6 +165,7 @@ void Tracker::front_end_loop()
                                 {
                                         // notify_all_updated_map();
                                         auto time_used = std::chrono::duration_cast<std::chrono::duration<double_t>>(end_time - start_time);
+                                        DLOG_INFO << "########### tracking time : " << time_used.count() * 1000 << std::endl;
                                         if( sp_slam_config_->per_frame_process_time - time_used.count()*1000.0 > 0)
                                         {
                                                 std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int64_t>(sp_slam_config_->per_frame_process_time - time_used.count()*1000)));
@@ -228,6 +230,9 @@ void Tracker::front_end_loop()
                         }
                 } //switch
         } //while(is_running_)
+        auto front_end_loop_end_time =  std::chrono::steady_clock::now();
+        auto front_end_loop_time_used = std::chrono::duration_cast<std::chrono::duration<double_t>>(front_end_loop_end_time - front_end_loop_start_time);
+        DLOG_INFO << "###### front  end loop run total time is : " << (front_end_loop_time_used.count()  - 6)* 1000 << std::endl;
 } //void Tracker::front_end_loop()
 
 
@@ -271,7 +276,7 @@ Tracker::FrontEndStatus Tracker::tracking()
         // estimate current coarse  pose;
         
         sp_current_frame_ = get_a_frame();
-        if( (nullptr ==  sp_current_frame_) || (800 ==  sp_current_frame_->id_)  )
+        if( (nullptr ==  sp_current_frame_) || (500 ==  sp_current_frame_->id_)  )
         {
                 DLOG_WARNING << " tracking finished " << std::endl;
                 return FrontEndStatus::FINISHED;
@@ -289,7 +294,11 @@ Tracker::FrontEndStatus Tracker::tracking()
         sp_current_frame_->set_left_pose(frame_pose);
         sp_current_frame_->set_right_pose(SE3(SO3(),sp_camera_config_->base_line) * frame_pose);
         // track point in current frame'left image;
+         auto track_feature_in_current_image_start_time =  std::chrono::steady_clock::now();
         int64_t tracked_num = track_feature_in_current_image();
+        auto track_feature_in_current_image_end_time =  std::chrono::steady_clock::now();
+        auto track_feature_in_current_image_time_used = std::chrono::duration_cast<std::chrono::duration<double_t>>(track_feature_in_current_image_end_time - track_feature_in_current_image_start_time);
+        DLOG_INFO << "###### track_feature_in_current_image cost time : " << track_feature_in_current_image_time_used.count() * 1000 << std::endl;              
         if(tracked_num < sp_slam_config_->mappoint_need_insert_keyframe_min_threshold)
         {
                 DLOG_ERROR<< "Frame:  " << sp_current_frame_->id_ <<  "  timestamp : " << sp_current_frame_->timestamp_ 
@@ -311,7 +320,11 @@ Tracker::FrontEndStatus Tracker::tracking()
                                          
         }
         // estimate current fine pose;
+        auto estimate_current_pose_start_time =  std::chrono::steady_clock::now();
         int64_t inlier_num =  estimate_current_pose();
+        auto estimate_current_pose_end_time =  std::chrono::steady_clock::now();
+        auto estimate_current_pose_time_used = std::chrono::duration_cast<std::chrono::duration<double_t>>(estimate_current_pose_end_time - estimate_current_pose_start_time);
+        DLOG_INFO << "###### estimate_current_pose_time_used: " << estimate_current_pose_time_used.count() * 1000<< std::endl;
         // update relative_motion_
         relative_motion_ =   sp_current_frame_->get_left_pose() * sp_last_frame_->get_left_pose().inverse();
         // check if tracked point number great than threshold, otherwise need insert keyframe;
@@ -327,7 +340,7 @@ Tracker::FrontEndStatus Tracker::tracking()
         else
         {
                 DLOG_INFO << " LOST " << std::endl;
-                exit(0);
+                // exit(0);
                 status = FrontEndStatus::LOST;
         }
         wp_map_.lock()->add_frame(sp_current_frame_); 
@@ -346,6 +359,7 @@ Tracker::FrontEndStatus Tracker::tracking()
 bool Tracker::insert_keyframe()
 {
         // SE3 right_pose = SE3(sp_current_frame_->get_left_pose().so3(), sp_current_frame_->get_left_pose().translation() +  sp_camera_config_->base_line);
+        auto insert_keyframe_start_time =  std::chrono::steady_clock::now();
         sp_current_frame_->set_right_pose(SE3(SO3(),sp_camera_config_->base_line) * sp_current_frame_->get_left_pose() );
         if (detect_left_image_features() < sp_slam_config_->features_init_min_threshold) { return false; }
         if (track_feature_in_right_image() < sp_slam_config_->features_init_min_threshold) { return false; }
@@ -353,6 +367,9 @@ bool Tracker::insert_keyframe()
         std::shared_ptr<KeyFrame> keyframe = std::shared_ptr<KeyFrame>(new KeyFrame(sp_current_frame_));
         wp_map_.lock()->add_keyframe(keyframe);
         sp_last_frame_ = sp_current_frame_;
+        auto insert_keyframe_end_time =  std::chrono::steady_clock::now();
+        auto insert_keyframe_time_used = std::chrono::duration_cast<std::chrono::duration<double_t>>(insert_keyframe_end_time - insert_keyframe_start_time);
+        DLOG_INFO << "###### insert_keyframe_time_used: " << insert_keyframe_time_used.count() * 1000<< std::endl;
         return true;
 }
 
@@ -486,8 +503,8 @@ int64_t Tracker::detect_left_image_features()
         //        DLOG_INFO<< " feature->get_frame_linked()->id_ " <<feature->get_frame_linked()->id_ << std::endl;
                sp_current_frame_->vsp_left_feature_.push_back(feature);
                cv::circle(sp_current_frame_->left_image_, keypoint.pt, 3, cv::Scalar(255,0,0));
-               cv::imshow("image",sp_current_frame_->left_image_);
-               cv::waitKey(1);
+        //        cv::imshow("image",sp_current_frame_->left_image_);
+        //        cv::waitKey(1);
         }
         DLOG_INFO << " keypoints size() : " << keypoints.size() << std::endl;
         //  cv::imshow("rectangle frame", mask);
@@ -761,13 +778,13 @@ int64_t Tracker::estimate_current_pose()
         }
 
         int64_t outlier_cnt { 0 };
-        for(int k { 0 }; k < 5; k++)
+        for(int k { 0 }; k < 1; k++)
         {
                 //use original pose in every turn
                 pose_vertex->setEstimate(raw_pose);
                 //init optimizer and run optimizer x times;
                 optimizer.initializeOptimization();
-                optimizer.optimize(10);
+                optimizer.optimize(3);
                 //mark outliers , use Chi-Squared Test;
                 outlier_cnt = 0;
                 const double_t kChi2Threshold { 5.991 };

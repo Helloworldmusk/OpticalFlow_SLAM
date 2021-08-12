@@ -5,7 +5,7 @@ pyrimid.levels_num: 4
 pyrimid.scale: 0.5
 
 #run
-fps: 30
+fps: 15
 
 #feature
 features.expected_nums: 200

@@ -388,7 +388,7 @@ Optimizer::BackEndStatus Optimizer::backend_optimize()
                  * default level = 0
                  */ 
         optimizer.initializeOptimization();
-        optimizer.optimize(10);
+        optimizer.optimize(5);
 
         //set new pose and mappoint position;
         for(int i { 0 }; i < dsp_actived_keyframes.size(); i++)
