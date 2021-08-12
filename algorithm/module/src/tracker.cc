@@ -271,7 +271,7 @@ Tracker::FrontEndStatus Tracker::tracking()
         // estimate current coarse  pose;
         
         sp_current_frame_ = get_a_frame();
-        if(1000 ==  sp_current_frame_->id_)
+        if( (nullptr ==  sp_current_frame_) || (800 ==  sp_current_frame_->id_)  )
         {
                 DLOG_WARNING << " tracking finished " << std::endl;
                 return FrontEndStatus::FINISHED;
@@ -326,6 +326,8 @@ Tracker::FrontEndStatus Tracker::tracking()
         }
         else
         {
+                DLOG_INFO << " LOST " << std::endl;
+                exit(0);
                 status = FrontEndStatus::LOST;
         }
         wp_map_.lock()->add_frame(sp_current_frame_); 
@@ -759,13 +761,13 @@ int64_t Tracker::estimate_current_pose()
         }
 
         int64_t outlier_cnt { 0 };
-        for(int k { 0 }; k < 3; k++)
+        for(int k { 0 }; k < 5; k++)
         {
                 //use original pose in every turn
                 pose_vertex->setEstimate(raw_pose);
                 //init optimizer and run optimizer x times;
                 optimizer.initializeOptimization();
-                optimizer.optimize(5);
+                optimizer.optimize(10);
                 //mark outliers , use Chi-Squared Test;
                 outlier_cnt = 0;
                 const double_t kChi2Threshold { 5.991 };
@@ -844,7 +846,7 @@ int64_t Tracker::insert_mappoints()
                 //TODO(snowden)[high] : need use parameter rather than magic;
                 if ((points_3d(2) > 300) || (points_3d(2) < 0))
                 {
-                        DLOG_INFO << "Reject triangulate due to distance great limitation , distance : " << points_3d(2) << std::endl;
+                        // DLOG_INFO << "Reject triangulate due to distance great limitation , distance : " << points_3d(2) << std::endl;
                         bad_triangluated_point_num++;
                         continue;
                 }

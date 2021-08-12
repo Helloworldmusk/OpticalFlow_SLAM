@@ -5,7 +5,7 @@ pyrimid.levels_num: 4
 pyrimid.scale: 0.5
 
 #run
-fps: 10
+fps: 30
 
 #feature
 features.expected_nums: 200
@@ -13,7 +13,7 @@ features.init_min_threshold: 50
 features.tracking_min_threshold: 150
 
 #mappoint
-mappoint.init_min_threshold: 50
+mappoint.init_min_threshold: 5
 #TODO(snowden)[high] : just for debug,  threshold need great 0;
-mappoint.need_insert_keyframe_min_threshold: -1
+mappoint.need_insert_keyframe_min_threshold: 10
 

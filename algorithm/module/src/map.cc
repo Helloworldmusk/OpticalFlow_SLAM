@@ -34,69 +34,71 @@ bool Map::add_keyframe(std::shared_ptr<KeyFrame> sp_keyframe)
         //add actived keyframe;
         std::unique_lock<std::mutex> actived_keyframes_lock_{ actived_keyframe_mutex_ };       
         dsp_actived_keyframes_.push_back(sp_keyframe);
+        int64_t delete_counter { 0 };
         if(dsp_actived_keyframes_.size() > kMaxActivedFrameNums)
         {
                 //TODO(snowden)[high] : just need delete owned mappoint, otherwise will delete one mappoint twice;
-                DLOG_INFO << "  before erase , dsp_actived_mappoints_  num : " <<  dsp_actived_mappoints_ .size()<< std::endl;
+
+                // get the second  keyframe in deque, if a mappoint observed by the second keyframe, it will reserved, otherwise, it will be deleted;
+                std::shared_ptr<KeyFrame> second_keyframe = *(dsp_actived_keyframes_.begin() + 1); 
+                DLOG_INFO << " keyframe deque front id : " << (*(dsp_actived_keyframes_.begin()))->sp_frame_->id_ 
+                                         << " keyframe deque front 2 id : " << (*(dsp_actived_keyframes_.begin() + 1))->sp_frame_->id_ << std::endl;
+                //just consider mappoints which linked to this keyframe;
                 auto end =  dsp_actived_mappoints_.begin() + dsp_actived_keyframes_.front()->sp_frame_->linked_mappoint3d_nums > dsp_actived_mappoints_.end() ? 
                                 dsp_actived_mappoints_.end() : dsp_actived_mappoints_.begin() + dsp_actived_keyframes_.front()->sp_frame_->linked_mappoint3d_nums;
-                dsp_actived_mappoints_.erase(dsp_actived_mappoints_.begin(),  end );
-                // DLOG_INFO << " finished erase " << std::endl;
-                int erase_num = dsp_actived_keyframes_.front()->sp_frame_->linked_mappoint3d_nums;  //TODO(snowden) : just for debug, need be deleted;
+                //TODO(snowden)[mid] : if delete will cause iterator error ? 
+                for(auto e = dsp_actived_mappoints_.begin(); e != end; e++)
+                {
+                        bool is_observed_by_next_keyframe { false };
+                        for( auto  obs : (*e)->vwp_observers_)
+                        {
+                                if (obs.lock()->get_frame_linked().lock() == second_keyframe->sp_frame_)
+                                {
+                                        is_observed_by_next_keyframe = true;
+                                        break;
+                                }
+                        } 
+                        if(!is_observed_by_next_keyframe)
+                        {
+                                dsp_actived_mappoints_.erase(e);
+                                delete_counter++;
+                        }
+                }
                 dsp_actived_keyframes_.pop_front();
-                DLOG_INFO << "  after erase , dsp_actived_mappoints_  num : " <<  dsp_actived_mappoints_ .size() << " total erase : " << erase_num << " points" << std::endl;
-
         }
         actived_keyframes_lock_.unlock();
         //add actived mappoint;
+        std::shared_ptr<KeyFrame> second_to_last_keyframe = nullptr;
+        if (dsp_actived_keyframes_.size() > 1)
+        {
+                second_to_last_keyframe = *(dsp_actived_keyframes_.end() -2);
+        } 
         std::unique_lock<std::mutex> actived_mappoints_lock_{ actived_mappoint_mutex_ };
         int64_t push_counter { 0 };       
         int64_t link_null_mappoint_counter { 0 };
+        int64_t increase_counter { 0 };
         for(auto p : sp_keyframe->sp_frame_->vsp_left_feature_)
         {
-                if(nullptr != p->get_mappoint3d_linked())
+                if (nullptr != p->get_mappoint3d_linked())
                 {
-                        //TODO(snowden)[mid] : the follow loop just for debug, can be deleted;
-                        int64_t counter = 0;
-                        for ( auto e : p->get_mappoint3d_linked()->vwp_observers_)
-                        {
-                                if(nullptr == e.lock())
-                                {
-                                        DLOG_FATAL << "feature id "  << p->id_ << " linked mappoint 's observers is null ???????? " << std::endl;
-                                        DLOG_INFO << "p->get_mappoint3d_linked()->vwp_observers_.size()"  << p->get_mappoint3d_linked()->vwp_observers_.size() << std::endl;
-                                        exit(0);
-                                }
-                                else if(p == e.lock())
-                                {
-                                        /**
-                                         * TODO(snowden)[high]: many mappoints add by many different frame, 
-                                         * this is will weast some cup resource, duplicate mappoint will be optimized in backend;
-                                         * so, just not duplicated mappoint need to push back
-                                         */  
-                                        dsp_actived_mappoints_.push_back(p->get_mappoint3d_linked());
-                                        push_counter++;
-                                }
-                                else
-                                {
-                                     counter++;   
-                                }
-                        }
-                        if(counter == p->get_mappoint3d_linked()->vwp_observers_.size())
-                        {
-                                DLOG_INFO << "feature id : " << p->id_ << "linked with mappoint ,but mappoint not be observed by feature" << std::endl;
-                        }
-                }
-                else
-                {
-                        link_null_mappoint_counter++;
-                }
+                        bool is_linked_last_frame { false };
+                         for (auto obs : p->get_mappoint3d_linked()->vwp_observers_)
+                         {
+                                 if(second_to_last_keyframe && obs.lock()->get_frame_linked().lock() == second_to_last_keyframe->sp_frame_)
+                                 {
+                                         is_linked_last_frame = true;
+                                 }
+                         }
+                         if(!is_linked_last_frame)
+                         {
+                                 dsp_actived_mappoints_.push_back(p->get_mappoint3d_linked());
+                                 increase_counter++;
+                         }
+                } 
         }
-        actived_mappoints_lock_.unlock();
-        // DLOG_INFO << "######################## push_counter : " << push_counter <<  " VS  linked_mappoint3d_num : " << sp_keyframe->sp_frame_->linked_mappoint3d_nums << std::endl;
-        // DLOG_INFO << " link_null_mappoint_counter " <<link_null_mappoint_counter << std::endl;
         DLOG_INFO << " sp_keyframe->sp_frame_->vsp_left_feature_  " << sp_keyframe->sp_frame_->vsp_left_feature_.size()<< std::endl;
-        DLOG_INFO << "dsp_actived_keyframes_.size()" <<dsp_actived_keyframes_.size()<<std::endl;
-        DLOG_INFO << "dsp_actived_mappoints_.size()" <<dsp_actived_mappoints_.size()<<std::endl;
+        DLOG_INFO << "  after erase , dsp_actived_mappoints_  num : " <<  dsp_actived_mappoints_ .size() << " total erase : " << delete_counter << " : total increase : " << increase_counter << std::endl;
+        // DLOG_INFO << "dsp_actived_keyframes_.size()" <<dsp_actived_keyframes_.size()<<std::endl;
 }
 
 

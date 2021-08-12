@@ -23,8 +23,8 @@ int main(int argc, char* argv[])
         DLOG_INFO << " this is a dlog test " << std::endl;
         std::string work_space_path = "/home/snowden/workplace/OpticalFlow_SLAM/OpticalFlow_SLAM/";
         std::string system_config_path = work_space_path + "config/system_config.yaml";
-        std::string camera_config_path ="/home/snowden/workplace/dataset/05/calib.txt";
-        std::string data_set_path = "/home/snowden/workplace/dataset/05";
+        std::string camera_config_path ="/home/snowden/workplace/dataset/07/calib.txt";
+        std::string data_set_path = "/home/snowden/workplace/dataset/07";
         std::string save_mat_path = "/home/snowden/workplace/OpticalFlow_SLAM/OpticalFlow_SLAM";
         // std::cout << " current dir " << current_path() << std::endl;;
         std::unique_ptr<SLAM::OP_SLAM> op_slam { 
