@@ -3,6 +3,8 @@
 
 namespace OpticalFlow_SLAM_algorithm_opticalflow_slam {
 
+#define PI 3.1415926
+
 //the following are UBUNTU/LINUX ONLY terminal color codes.
 #define RESET_COLOR   "\033[0m"
 #define BLACK   "\033[30m"      /* Black */

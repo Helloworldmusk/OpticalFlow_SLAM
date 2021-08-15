@@ -699,37 +699,115 @@ int64_t Tracker::track_feature_in_current_image(bool& is_urgent_need_keyframe)
         //count keypoint numbers in image left 1/3, mid 1/3, right 1/3;
         int64_t left_keypoint_num { 0 };
         int64_t right_keypoint_num { 0 };
-        for (size_t i = 0; i < status.size(); i++)
+        std::vector<size_t> vv_directation_angles_index[12];
+        //statistic angle;
+        for (size_t i  { 0 }; i < status.size(); i++)
         {
                 if (status[i] && !(sp_last_frame_->vsp_left_feature_[i]->is_outline_))
-                {
-                        // DLOG_INFO << "v_current_keypoints[i].x " << v_current_keypoints[i].x << std::endl;
-                        if(v_current_keypoints[i].x < sp_current_frame_->left_image_.cols / 2) 
-                        {
-                                left_keypoint_num++;
-                        }
-                        else
-                        {
-                                right_keypoint_num++;
-                        }
-                        std::shared_ptr<Feature2d> feature 
-                                = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_current_keypoints[i].x, v_current_keypoints[i].y)));
-                        CHECK_NOTNULL(feature);
-                        feature->is_left_ = true;
-                        feature->set_frame_linked(sp_current_frame_);
-                        
-                        std::shared_ptr<Mappoint3d>mappoint_linked = sp_last_frame_->vsp_left_feature_[i]->get_mappoint3d_linked();
-                        if(nullptr != mappoint_linked)
-                        {
-                                feature->set_mappoint3d_linked(mappoint_linked);
-                                feature->get_mappoint3d_linked()->vwp_observers_.push_back(feature);
-                        }
-                        sp_current_frame_->vsp_left_feature_.push_back(feature);
-                        good_point_counter++;
-                        cv::circle(sp_current_frame_->left_image_, v_current_keypoints[i], 3, cv::Scalar(0,255,0));
-                        cv::line(sp_current_frame_->left_image_, v_current_keypoints[i],  v_last_keypoints[i], cv::Scalar(111, 111, 111));
+                {       
+                        float dx = v_current_keypoints[i].x - v_last_keypoints[i].x;
+                        float dy = v_current_keypoints[i].y - v_last_keypoints[i].y;
+                        // DLOG_INFO << "dx: " << dx << " dy : " << dy << std::endl;
+                        // DLOG_INFO << "atan(2) " << atan(-0.2) * 180.0 / PI<< std::endl;
+                        // DLOG_INFO << "atan(2) f" << atan(-0.2) * 180.0f / PI<< std::endl;
+                        // float angle = atan(dy/dx) * 180.0f / PI;
+                        // DLOG_INFO << "angle " << angle << std::endl;
+                        int32_t index =((atan(dy/dx) * 180.0f / PI) + 180 )/30.f;
+                        // DLOG_INFO << "index " << index << std::endl;
+                        vv_directation_angles_index[index].push_back(i);;
+                        // exit(0);
                 }
         }
+        //find the max angle;
+        size_t max_cnt { 0 };
+        size_t second_max_cnt { 0 };
+        size_t max_index { 0 };
+        size_t second_max_index { 0 };
+        for(size_t i { 0 }; i < 12; i++)
+        {
+                DLOG_INFO << "angle : " << i * 30 << " ~ " << (i + 1) * 30 << " cnt : " << vv_directation_angles_index[i].size() << std::endl;
+                if(vv_directation_angles_index[i].size() > max_cnt)
+                {
+                        second_max_cnt = max_cnt;
+                        second_max_index = max_index;
+                        max_cnt = vv_directation_angles_index[i].size();
+                        max_index = i;
+                }
+                else if(vv_directation_angles_index[i].size() > second_max_cnt)
+                {
+                        second_max_cnt = vv_directation_angles_index[i].size();
+                        second_max_index = i;
+                }
+        }
+        DLOG_INFO << "max_cnt " <<max_cnt << "  max_index " << max_index << std::endl;
+        DLOG_INFO << "second_max_cnt " << second_max_cnt<< " second_max_index " <<second_max_index << std::endl;
+        //if max and second_max direction cnt is closed , push second_max to max;
+        if(max_cnt - second_max_cnt < 30)
+        {
+                for(auto& i : vv_directation_angles_index[second_max_index])
+                {
+                        vv_directation_angles_index[max_index].emplace_back(i);
+                }
+        }
+        for (auto& i : vv_directation_angles_index[max_index])
+        {
+                if(v_current_keypoints[i].x < sp_current_frame_->left_image_.cols / 2) 
+                {
+                        left_keypoint_num++;
+                }
+                else
+                {
+                        right_keypoint_num++;
+                }
+                std::shared_ptr<Feature2d> feature 
+                        = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_current_keypoints[i].x, v_current_keypoints[i].y)));
+                CHECK_NOTNULL(feature);
+                feature->is_left_ = true;
+                feature->set_frame_linked(sp_current_frame_);
+                
+                std::shared_ptr<Mappoint3d>mappoint_linked = sp_last_frame_->vsp_left_feature_[i]->get_mappoint3d_linked();
+                if(nullptr != mappoint_linked)
+                {
+                        feature->set_mappoint3d_linked(mappoint_linked);
+                        feature->get_mappoint3d_linked()->vwp_observers_.push_back(feature);
+                }
+                sp_current_frame_->vsp_left_feature_.push_back(feature);
+                good_point_counter++;
+                cv::circle(sp_current_frame_->left_image_, v_current_keypoints[i], 3, cv::Scalar(0,255,0));
+                cv::line(sp_current_frame_->left_image_, v_current_keypoints[i],  v_last_keypoints[i], cv::Scalar(111, 111, 111));
+        }
+        // for (size_t i  { 0 }; i < status.size(); i++)
+        // {
+        //         if (status[i] && !(sp_last_frame_->vsp_left_feature_[i]->is_outline_))
+        //         {
+        //                 // DLOG_INFO << "v_current_keypoints[i].x " << v_current_keypoints[i].x << std::endl;
+        //                 //count feature in half image of left and right;
+        //                 if(v_current_keypoints[i].x < sp_current_frame_->left_image_.cols / 2) 
+        //                 {
+        //                         left_keypoint_num++;
+        //                 }
+        //                 else
+        //                 {
+        //                         right_keypoint_num++;
+        //                 }
+        //                 std::shared_ptr<Feature2d> feature 
+        //                         = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_current_keypoints[i].x, v_current_keypoints[i].y)));
+        //                 CHECK_NOTNULL(feature);
+        //                 feature->is_left_ = true;
+        //                 feature->set_frame_linked(sp_current_frame_);
+                        
+        //                 std::shared_ptr<Mappoint3d>mappoint_linked = sp_last_frame_->vsp_left_feature_[i]->get_mappoint3d_linked();
+        //                 if(nullptr != mappoint_linked)
+        //                 {
+        //                         feature->set_mappoint3d_linked(mappoint_linked);
+        //                         feature->get_mappoint3d_linked()->vwp_observers_.push_back(feature);
+        //                 }
+        //                 sp_current_frame_->vsp_left_feature_.push_back(feature);
+        //                 good_point_counter++;
+        //                 cv::circle(sp_current_frame_->left_image_, v_current_keypoints[i], 3, cv::Scalar(0,255,0));
+        //                 cv::line(sp_current_frame_->left_image_, v_current_keypoints[i],  v_last_keypoints[i], cv::Scalar(111, 111, 111));
+        //         }
+        // }
         double_t max = left_keypoint_num > right_keypoint_num ? left_keypoint_num : right_keypoint_num;
         double_t min = left_keypoint_num < right_keypoint_num ? left_keypoint_num : right_keypoint_num;
         if((max - min ) / good_point_counter > 0.25)

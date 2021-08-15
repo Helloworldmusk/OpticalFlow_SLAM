@@ -8,7 +8,7 @@ pyrimid.scale: 0.5
 fps: 15
 
 #feature
-features.expected_nums: 150
+features.expected_nums: 300
 features.init_min_threshold: 50
 features.tracking_min_threshold: 100
 
