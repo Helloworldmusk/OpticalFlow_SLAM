@@ -388,13 +388,13 @@ Optimizer::BackEndStatus Optimizer::backend_optimize()
                  * default level = 0
                  */ 
         optimizer.initializeOptimization();
-        optimizer.optimize(5);
+        optimizer.optimize(10);
 
         //set new pose and mappoint position;
         for(int i { 0 }; i < dsp_actived_keyframes.size(); i++)
         {
                 dsp_actived_keyframes[i]->sp_frame_->set_left_pose(vsp_pose_vertex[2 * i]->estimate());
-                dsp_actived_keyframes[i]->sp_frame_->set_right_pose(SE3(vsp_pose_vertex[2 * i + 1]->estimate().so3(),sp_camera_config_->base_line));
+                dsp_actived_keyframes[i]->sp_frame_->set_right_pose( SE3(SO3(), sp_camera_config_->base_line) * vsp_pose_vertex[2 * i + 1]->estimate());
         }
         for(int j { 0 }; j < dsp_actived_mappoints.size(); j++)
         {
@@ -402,7 +402,6 @@ Optimizer::BackEndStatus Optimizer::backend_optimize()
         }
         
         //mark and delelte outlier;
-        
         int64_t outlier_cnt { 0 };
         int64_t inlier_cnt { 0 };
         double_t temp_chi2_threshold { kChi2Threshold };

@@ -295,7 +295,8 @@ Tracker::FrontEndStatus Tracker::tracking()
         sp_current_frame_->set_right_pose(SE3(SO3(),sp_camera_config_->base_line) * frame_pose);
         // track point in current frame'left image;
          auto track_feature_in_current_image_start_time =  std::chrono::steady_clock::now();
-        int64_t tracked_num = track_feature_in_current_image();
+         bool is_urgent_need_keyframe { false };
+        int64_t tracked_num = track_feature_in_current_image(is_urgent_need_keyframe);
         auto track_feature_in_current_image_end_time =  std::chrono::steady_clock::now();
         auto track_feature_in_current_image_time_used = std::chrono::duration_cast<std::chrono::duration<double_t>>(track_feature_in_current_image_end_time - track_feature_in_current_image_start_time);
         DLOG_INFO << "###### track_feature_in_current_image cost time : " << track_feature_in_current_image_time_used.count() * 1000 << std::endl;              
@@ -328,7 +329,11 @@ Tracker::FrontEndStatus Tracker::tracking()
         // update relative_motion_
         relative_motion_ =   sp_current_frame_->get_left_pose() * sp_last_frame_->get_left_pose().inverse();
         // check if tracked point number great than threshold, otherwise need insert keyframe;
-        if(inlier_num >  sp_slam_config_->features_tracking_min_threshold )
+        if(is_urgent_need_keyframe)
+        {
+                status = FrontEndStatus::NEED_INSERT_KEYFRAM;
+        }
+        else if(inlier_num >  sp_slam_config_->features_tracking_min_threshold )
         {
                 sp_last_frame_ = sp_current_frame_;
                 status = FrontEndStatus::TRACKING;
@@ -339,8 +344,8 @@ Tracker::FrontEndStatus Tracker::tracking()
         }
         else
         {
-                DLOG_INFO << " LOST " << std::endl;
-                // exit(0);
+                DLOG_INFO << " LOST  ready terminal" << std::endl;
+                cv::waitKey(0);
                 status = FrontEndStatus::LOST;
         }
         wp_map_.lock()->add_frame(sp_current_frame_); 
@@ -484,7 +489,7 @@ int64_t Tracker::detect_left_image_features()
         {
                 for(auto& feature:  sp_last_frame_->vsp_left_feature_)
                 {
-                        cv::rectangle(mask, feature->cv_keypoint_.pt - cv::Point2f(10,10),  feature->cv_keypoint_.pt + cv::Point2f(10,10), cv::Scalar(255), CV_FILLED);
+                        cv::rectangle(mask, feature->cv_keypoint_.pt - cv::Point2f(20,20),  feature->cv_keypoint_.pt + cv::Point2f(20,20), cv::Scalar(255), CV_FILLED);
                 }
                 gftt_detector_->detect(sp_current_frame_->left_image_, keypoints, mask);
         }
@@ -506,7 +511,7 @@ int64_t Tracker::detect_left_image_features()
         //        cv::imshow("image",sp_current_frame_->left_image_);
         //        cv::waitKey(1);
         }
-        DLOG_INFO << " keypoints size() : " << keypoints.size() << std::endl;
+        DLOG_INFO << "detect_left_image_features: keypoints size() : " << keypoints.size() << std::endl;
         //  cv::imshow("rectangle frame", mask);
         //  cv::imshow("current frame", sp_current_frame_->left_image_);
         //  cv::waitKey();
@@ -613,7 +618,7 @@ int64_t Tracker::init_map()
                         continue;
                 }
                 //TODO(snowden)[high] : need use parameter rather than magic;
-                if ((points_3d(2) > 50) || (points_3d(2) < -50))
+                if ((points_3d(2) > 300) || (points_3d(2) < 0)) 
                 {
                         DLOG_INFO << "reject triangulate due distance great limit" << std::endl;
                         bad_triangluated_point_num++;
@@ -649,10 +654,10 @@ int64_t Tracker::init_map()
  * @brief  
  * @author snowden
  * @date 2021-07-29
- ** @return the number of feature2d successfully tracked from last frame's left;;
+ * @return the number of feature2d successfully tracked from last frame's left;;
  * @version 1.0
  */
-int64_t Tracker::track_feature_in_current_image()
+int64_t Tracker::track_feature_in_current_image(bool& is_urgent_need_keyframe)
 {
         std::vector<cv::Point2f> v_last_keypoints;
         std::vector<cv::Point2f> v_current_keypoints;
@@ -688,13 +693,25 @@ int64_t Tracker::track_feature_in_current_image()
         cv::Mat error;
         int64_t good_point_counter = 0;
         cv::calcOpticalFlowPyrLK(sp_last_frame_->left_image_, sp_current_frame_->left_image_, 
-                                                              v_last_keypoints, v_current_keypoints, status, error, cv::Size(11, 11), 3,
+                                                              v_last_keypoints, v_current_keypoints, status, error, cv::Size(11, 11), 5,
                                                               cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 0.01),
                                                               cv::OPTFLOW_USE_INITIAL_FLOW); 
+        //count keypoint numbers in image left 1/3, mid 1/3, right 1/3;
+        int64_t left_keypoint_num { 0 };
+        int64_t right_keypoint_num { 0 };
         for (size_t i = 0; i < status.size(); i++)
         {
-                if (status[i])
+                if (status[i] && !(sp_last_frame_->vsp_left_feature_[i]->is_outline_))
                 {
+                        // DLOG_INFO << "v_current_keypoints[i].x " << v_current_keypoints[i].x << std::endl;
+                        if(v_current_keypoints[i].x < sp_current_frame_->left_image_.cols / 2) 
+                        {
+                                left_keypoint_num++;
+                        }
+                        else
+                        {
+                                right_keypoint_num++;
+                        }
                         std::shared_ptr<Feature2d> feature 
                                 = std::shared_ptr<Feature2d>(new Feature2d(Vec2(v_current_keypoints[i].x, v_current_keypoints[i].y)));
                         CHECK_NOTNULL(feature);
@@ -710,7 +727,18 @@ int64_t Tracker::track_feature_in_current_image()
                         sp_current_frame_->vsp_left_feature_.push_back(feature);
                         good_point_counter++;
                         cv::circle(sp_current_frame_->left_image_, v_current_keypoints[i], 3, cv::Scalar(0,255,0));
+                        cv::line(sp_current_frame_->left_image_, v_current_keypoints[i],  v_last_keypoints[i], cv::Scalar(111, 111, 111));
                 }
+        }
+        double_t max = left_keypoint_num > right_keypoint_num ? left_keypoint_num : right_keypoint_num;
+        double_t min = left_keypoint_num < right_keypoint_num ? left_keypoint_num : right_keypoint_num;
+        if((max - min ) / good_point_counter > 0.25)
+        {
+                is_urgent_need_keyframe = true;
+        }
+        else
+        {
+                is_urgent_need_keyframe = false;
         }
         cv::imshow("image",sp_current_frame_->left_image_);
         cv::waitKey(1);
@@ -754,10 +782,16 @@ int64_t Tracker::estimate_current_pose()
         std::vector<std::shared_ptr<Feature2d>> vsp_feature2ds;
         std::vector<UnaryEdgePose*> vp_egdes;
         int64_t no_mappoint3d_linked_feature2d_num { 0 } ;
+        int64_t too_close_mappoint_not_join_estimate_num { 0 };
         for (auto feature2d : sp_current_frame_->vsp_left_feature_)
         {
                 if (feature2d->get_mappoint3d_linked())
                 {
+                        if(feature2d->get_mappoint3d_linked()->get_position3d()(2) < 2)
+                        {
+                                too_close_mappoint_not_join_estimate_num++;
+                                continue;
+                        }
                         //save valid feature for mark is outlier 
                         vsp_feature2ds.push_back(feature2d);
                         UnaryEdgePose * new_edge = new UnaryEdgePose(feature2d->get_mappoint3d_linked()->get_position3d() , K);
@@ -777,23 +811,25 @@ int64_t Tracker::estimate_current_pose()
                 }
         }
 
-        int64_t outlier_cnt { 0 };
+        double_t outlier_cnt { 0.0 };
+        double_t inlier_cnt { 0.0 };
         for(int k { 0 }; k < 1; k++)
         {
                 //use original pose in every turn
                 pose_vertex->setEstimate(raw_pose);
                 //init optimizer and run optimizer x times;
                 optimizer.initializeOptimization();
-                optimizer.optimize(3);
+                optimizer.optimize(10);
                 //mark outliers , use Chi-Squared Test;
-                outlier_cnt = 0;
-                const double_t kChi2Threshold { 5.991 };
+                outlier_cnt = 0.0;
+                inlier_cnt = 0.0;
+                double_t kChi2Threshold { 5.991 };
                 for (size_t i { 0 }; i < vp_egdes.size(); i++)
                 {
-                        if (vsp_feature2ds[i]->is_outline_)
-                        {
-                                vp_egdes[i]->computeError();
-                        }
+                        // if (vsp_feature2ds[i]->is_outline_)
+                        // {
+                        //         vp_egdes[i]->computeError();
+                        // }
                         if(vp_egdes[i]->chi2() > kChi2Threshold)
                         {
                                 vsp_feature2ds[i]->is_outline_ = true;
@@ -804,9 +840,20 @@ int64_t Tracker::estimate_current_pose()
                         {
                                 vsp_feature2ds[i]->is_outline_ = false;
                                 vp_egdes[i]->setLevel(0);
+                                inlier_cnt++;
                         }
                 }
+                if(inlier_cnt / (inlier_cnt + outlier_cnt) > 0.5)
+                {
+                        break;
+                }
+                // else
+                // {
+                //         kChi2Threshold *= 1;
+                // }
         }
+        DLOG_INFO << "total optimized element = " << index << std::endl;
+        DLOG_INFO << "too_close_mappoint_not_join_estimate_num : " << too_close_mappoint_not_join_estimate_num << std::endl;
         DLOG_INFO <<  "  no_mappoint3d_linked_feature2d_num : " << no_mappoint3d_linked_feature2d_num << std::endl;
         DLOG_INFO <<  "  outlier / feature size : " << outlier_cnt << " / " << vsp_feature2ds.size() << std::endl;
         sp_current_frame_->set_left_pose(pose_vertex->estimate());
@@ -819,7 +866,7 @@ int64_t Tracker::estimate_current_pose()
                         feature->set_mappoint3d_linked(nullptr);
                         //TODO(snowden) : is_outline_ set to false, maybe can be used by other frame in local optimizer; 
                         //but you can try to delete it to make a comparrson; 
-                        feature->is_outline_ = false;
+                        feature->is_outline_ = true;
                 }
         }
         sp_current_frame_->linked_mappoint3d_nums =  vsp_feature2ds.size() - outlier_cnt;

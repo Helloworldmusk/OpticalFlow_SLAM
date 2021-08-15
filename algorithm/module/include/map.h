@@ -26,7 +26,7 @@ class Map {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-        static constexpr int64_t kMaxActivedFrameNums { 6 };
+        static constexpr int64_t kMaxActivedFrameNums { 8 };
 
         Map() { };
         ~Map() { };
